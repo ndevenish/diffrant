@@ -1,4 +1,4 @@
-import type { RawImageData, ImageMetadata, ViewerState, ColormapName } from '../types';
+import type { RawImageData, ImageMetadata, ViewerState, ColormapName, CursorInfo } from '../types';
 import { Histogram } from './Histogram';
 import { ColormapSelector } from './ColormapSelector';
 import { DownsampleSelector } from './DownsampleSelector';
@@ -9,6 +9,7 @@ interface ControlPanelProps {
   metadata: ImageMetadata;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
+  cursorInfo: CursorInfo | null;
 }
 
 export function ControlPanel({
@@ -16,6 +17,7 @@ export function ControlPanel({
   metadata,
   viewerState,
   onViewerStateChange,
+  cursorInfo,
 }: ControlPanelProps) {
   return (
     <div className="control-panel">
@@ -38,8 +40,20 @@ export function ControlPanel({
         }
         visible={viewerState.zoom < 1}
       />
-      <div className="control-panel-info">
-        <div style={{ fontSize: 11, color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Info</div>
+      <div className="control-panel-section">
+        <div className="control-panel-label">Pixel</div>
+        {cursorInfo ? (
+          <div className="cursor-info-panel">
+            <span>fast: {cursorInfo.fast}</span>
+            <span>slow: {cursorInfo.slow}</span>
+            <span>value: {cursorInfo.value}</span>
+          </div>
+        ) : (
+          <div className="cursor-info-empty">—</div>
+        )}
+      </div>
+      <div className="control-panel-section">
+        <div className="control-panel-label">Image</div>
         <div style={{ fontSize: 12, color: '#ccc' }}>
           {imageData.width} x {imageData.height} ({imageData.depth}-bit)
         </div>

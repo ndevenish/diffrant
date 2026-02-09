@@ -1,4 +1,5 @@
-import type { DiffrantProps } from './types';
+import { useState, useCallback } from 'react';
+import type { DiffrantProps, CursorInfo } from './types';
 import { useImageLoader } from './hooks/useImageLoader';
 import { ImageCanvas } from './components/ImageCanvas';
 import { ControlPanel } from './components/ControlPanel';
@@ -11,6 +12,11 @@ export function Diffrant({
   onViewerStateChange,
 }: DiffrantProps) {
   const { metadata, imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
+  const [cursorInfo, setCursorInfo] = useState<CursorInfo | null>(null);
+
+  const handleCursorChange = useCallback((info: CursorInfo | null) => {
+    setCursorInfo(info);
+  }, []);
 
   if (loading) {
     return (
@@ -45,6 +51,7 @@ export function Diffrant({
           metadata={metadata}
           viewerState={viewerState}
           onViewerStateChange={onViewerStateChange}
+          onCursorChange={handleCursorChange}
         />
       </div>
       <div className="diffrant-right">
@@ -53,6 +60,7 @@ export function Diffrant({
           metadata={metadata}
           viewerState={viewerState}
           onViewerStateChange={onViewerStateChange}
+          cursorInfo={cursorInfo}
         />
       </div>
     </div>

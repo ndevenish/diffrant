@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import type { RawImageData, ViewerState, ImageMetadata } from '../types';
+import type { RawImageData, ViewerState, ImageMetadata, CursorInfo } from '../types';
 import { buildLUT, renderRegion, getColormapTable } from '../rendering/pipeline';
 import './ImageCanvas.css';
 
@@ -8,6 +8,7 @@ interface ImageCanvasProps {
   metadata: ImageMetadata;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
+  onCursorChange: (info: CursorInfo | null) => void;
 }
 
 export function ImageCanvas({
@@ -15,6 +16,7 @@ export function ImageCanvas({
   metadata,
   viewerState,
   onViewerStateChange,
+  onCursorChange,
 }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -22,7 +24,11 @@ export function ImageCanvas({
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const hasAutoFit = useRef(false);
-  const [cursorInfo, setCursorInfo] = useState<{ imgX: number; imgY: number; value: number } | null>(null);
+
+  // Minimum zoom: image fills ~90% of frame
+  const minZoom = canvasSize.width > 0 && canvasSize.height > 0
+    ? 0.9 * Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height)
+    : 0.01;
 
   // Auto-fit: compute zoom to fit image on first canvas size
   useEffect(() => {
@@ -103,7 +109,7 @@ export function ImageCanvas({
       const { imgX, imgY } = canvasToImage(cx, cy);
 
       const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newZoom = Math.max(0.01, Math.min(100, viewerState.zoom * zoomFactor));
+      const newZoom = Math.max(minZoom, Math.min(100, viewerState.zoom * zoomFactor));
 
       // Adjust pan so the image point under cursor stays under cursor
       const newPanX = imgX - (cx - canvasSize.width / 2) / newZoom;
@@ -115,7 +121,7 @@ export function ImageCanvas({
         pan: { x: newPanX, y: newPanY },
       });
     },
-    [viewerState, onViewerStateChange, canvasToImage, canvasSize],
+    [viewerState, onViewerStateChange, canvasToImage, canvasSize, minZoom],
   );
 
   // Drag to pan
@@ -138,9 +144,9 @@ export function ImageCanvas({
         const iy = Math.floor(imgY);
         if (ix >= 0 && ix < imageData.width && iy >= 0 && iy < imageData.height) {
           const value = imageData.data[iy * imageData.width + ix];
-          setCursorInfo({ imgX: ix, imgY: iy, value });
+          onCursorChange({ fast: ix, slow: iy, value });
         } else {
-          setCursorInfo(null);
+          onCursorChange(null);
         }
       }
 
@@ -158,7 +164,7 @@ export function ImageCanvas({
         },
       });
     },
-    [viewerState, onViewerStateChange, canvasToImage, imageData],
+    [viewerState, onViewerStateChange, canvasToImage, imageData, onCursorChange],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -167,8 +173,8 @@ export function ImageCanvas({
 
   const handleMouseLeave = useCallback(() => {
     isDragging.current = false;
-    setCursorInfo(null);
-  }, []);
+    onCursorChange(null);
+  }, [onCursorChange]);
 
   return (
     <div className="image-canvas-container" ref={containerRef}>
@@ -181,11 +187,6 @@ export function ImageCanvas({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
       />
-      {cursorInfo && (
-        <div className="cursor-info">
-          x: {cursorInfo.imgX} y: {cursorInfo.imgY} val: {cursorInfo.value}
-        </div>
-      )}
     </div>
   );
 }

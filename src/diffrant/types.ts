@@ -33,3 +33,9 @@ export interface RawImageData {
   height: number;
   depth: 8 | 16 | 32;
 }
+
+export interface CursorInfo {
+  fast: number; // x pixel coordinate
+  slow: number; // y pixel coordinate
+  value: number;
+}

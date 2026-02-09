@@ -5,4 +5,5 @@ export type {
   ImageMetadata,
   RawImageData,
   ColormapName,
+  CursorInfo,
 } from './types';
