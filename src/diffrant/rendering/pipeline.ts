@@ -151,7 +151,7 @@ export function renderRegion(
   ctx.putImageData(imgData, 0, 0);
 
   // Draw pixel value text when zoomed in far enough
-  const MIN_ZOOM_FOR_TEXT = 8;
+  const MIN_ZOOM_FOR_TEXT = 40;
   if (zoom >= MIN_ZOOM_FOR_TEXT) {
     // Compute visible image pixel range
     const imgXStart = Math.floor((0 - halfCanvasW) / zoom + pan.x);
