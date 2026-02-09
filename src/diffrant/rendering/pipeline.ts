@@ -149,6 +149,37 @@ export function renderRegion(
   }
 
   ctx.putImageData(imgData, 0, 0);
+
+  // Draw pixel value text when zoomed in far enough
+  const MIN_ZOOM_FOR_TEXT = 8;
+  if (zoom >= MIN_ZOOM_FOR_TEXT) {
+    // Compute visible image pixel range
+    const imgXStart = Math.floor((0 - halfCanvasW) / zoom + pan.x);
+    const imgXEnd = Math.ceil((canvasWidth - halfCanvasW) / zoom + pan.x);
+    const imgYStart = Math.floor((0 - halfCanvasH) / zoom + pan.y);
+    const imgYEnd = Math.ceil((canvasHeight - halfCanvasH) / zoom + pan.y);
+
+    const fontSize = Math.max(9, Math.min(zoom * 0.3, 16));
+    ctx.font = `${fontSize}px monospace`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let iy = Math.max(0, imgYStart); iy <= Math.min(imgH - 1, imgYEnd); iy++) {
+      for (let ix = Math.max(0, imgXStart); ix <= Math.min(imgW - 1, imgXEnd); ix++) {
+        const rawVal = rawData[iy * imgW + ix];
+
+        // Canvas position of this pixel's center
+        const cx = (ix - pan.x + 0.5) * zoom + halfCanvasW;
+        const cy = (iy - pan.y + 0.5) * zoom + halfCanvasH;
+
+        // Pick text color contrasting with background
+        const lutVal = (rawVal <= trustedMax) ? (lut[rawVal] ?? 255) : 0;
+        ctx.fillStyle = lutVal > 127 ? '#000' : '#fff';
+
+        ctx.fillText(String(rawVal), cx, cy);
+      }
+    }
+  }
 }
 
 function depth2max(depth: 8 | 16 | 32): number {
