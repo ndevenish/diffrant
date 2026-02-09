@@ -149,12 +149,11 @@ export function Histogram({
       const x = e.clientX - rect.left;
       const rawVal = Math.round(xToRaw(x));
 
+      const clamped = Math.max(0, Math.min(displayMax, rawVal));
       if (dragging === 'min') {
-        const newMin = Math.min(rawVal, viewerState.exposureMax - 1);
-        onViewerStateChange({ ...viewerState, exposureMin: Math.max(0, newMin) });
+        onViewerStateChange({ ...viewerState, exposureMin: clamped });
       } else {
-        const newMax = Math.max(rawVal, viewerState.exposureMin + 1);
-        onViewerStateChange({ ...viewerState, exposureMax: newMax });
+        onViewerStateChange({ ...viewerState, exposureMax: clamped });
       }
     },
     [dragging, viewerState, onViewerStateChange, xToRaw, displayMax],

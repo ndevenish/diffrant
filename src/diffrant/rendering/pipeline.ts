@@ -33,11 +33,11 @@ export function buildLUT(depth: 8 | 16 | 32, exposureMin: number, exposureMax: n
   return lut;
 }
 
-// Background color for masked pixels (dark gray)
-const MASK_R = 40;
-const MASK_G = 40;
-const MASK_B = 40;
-const MASK_A = 255;
+// Background color for off-image areas
+const BG_R = 40;
+const BG_G = 40;
+const BG_B = 40;
+const BG_A = 255;
 
 /**
  * Render the visible region of the image onto the canvas.
@@ -55,8 +55,15 @@ export function renderRegion(
   const imgData = ctx.createImageData(canvasWidth, canvasHeight);
   const pixels = imgData.data; // Uint8ClampedArray
   const { data: rawData, width: imgW, height: imgH } = imageData;
-  const { pan, zoom, maskEnabled, downsampleMode } = viewState;
+  const { pan, zoom, showMask, downsampleMode } = viewState;
   const trustedMax = metadata.trusted_range_max;
+
+  // Masked pixel colors: value=0 color by default, red when showMask is on
+  const zeroLut = lut[0];
+  const zeroCm = zeroLut * 4;
+  const maskR = showMask ? 200 : colormap[zeroCm];
+  const maskG = showMask ? 50 : colormap[zeroCm + 1];
+  const maskB = showMask ? 50 : colormap[zeroCm + 2];
 
   // Canvas center maps to pan position in image space
   const halfCanvasW = canvasWidth / 2;
@@ -65,17 +72,12 @@ export function renderRegion(
   if (zoom >= 1) {
     // Zoomed in or 1:1 — nearest neighbor
     for (let cy = 0; cy < canvasHeight; cy++) {
-      // Image Y for this canvas row
       const imgY = Math.floor((cy - halfCanvasH) / zoom + pan.y);
       if (imgY < 0 || imgY >= imgH) {
-        // Off-image: fill with background
         const rowOffset = cy * canvasWidth * 4;
         for (let cx = 0; cx < canvasWidth; cx++) {
           const p = rowOffset + cx * 4;
-          pixels[p] = MASK_R;
-          pixels[p + 1] = MASK_G;
-          pixels[p + 2] = MASK_B;
-          pixels[p + 3] = MASK_A;
+          pixels[p] = BG_R; pixels[p + 1] = BG_G; pixels[p + 2] = BG_B; pixels[p + 3] = BG_A;
         }
         continue;
       }
@@ -88,20 +90,14 @@ export function renderRegion(
         const p = canvasRowOffset + cx * 4;
 
         if (imgX < 0 || imgX >= imgW) {
-          pixels[p] = MASK_R;
-          pixels[p + 1] = MASK_G;
-          pixels[p + 2] = MASK_B;
-          pixels[p + 3] = MASK_A;
+          pixels[p] = BG_R; pixels[p + 1] = BG_G; pixels[p + 2] = BG_B; pixels[p + 3] = BG_A;
           continue;
         }
 
         const rawVal = rawData[imgRowOffset + imgX];
 
-        if (maskEnabled && rawVal > trustedMax) {
-          pixels[p] = MASK_R;
-          pixels[p + 1] = MASK_G;
-          pixels[p + 2] = MASK_B;
-          pixels[p + 3] = MASK_A;
+        if (rawVal > trustedMax) {
+          pixels[p] = maskR; pixels[p + 1] = maskG; pixels[p + 2] = maskB; pixels[p + 3] = 255;
           continue;
         }
 
@@ -115,7 +111,7 @@ export function renderRegion(
     }
   } else {
     // Zoomed out — downsample
-    const blockSize = 1 / zoom; // image pixels per canvas pixel
+    const blockSize = 1 / zoom;
 
     for (let cy = 0; cy < canvasHeight; cy++) {
       const imgYf = (cy - halfCanvasH) / zoom + pan.y;
@@ -129,27 +125,16 @@ export function renderRegion(
         const startY = Math.floor(imgYf);
 
         if (startX < 0 || startY < 0 || startX >= imgW || startY >= imgH) {
-          pixels[p] = MASK_R;
-          pixels[p + 1] = MASK_G;
-          pixels[p + 2] = MASK_B;
-          pixels[p + 3] = MASK_A;
+          pixels[p] = BG_R; pixels[p + 1] = BG_G; pixels[p + 2] = BG_B; pixels[p + 3] = BG_A;
           continue;
         }
 
         const rawVal = downsampleBlock(
-          imageData,
-          startX,
-          startY,
-          Math.ceil(blockSize),
-          downsampleMode,
-          trustedMax,
+          imageData, startX, startY, Math.ceil(blockSize), downsampleMode, trustedMax,
         );
 
-        if (maskEnabled && rawVal > trustedMax) {
-          pixels[p] = MASK_R;
-          pixels[p + 1] = MASK_G;
-          pixels[p + 2] = MASK_B;
-          pixels[p + 3] = MASK_A;
+        if (rawVal > trustedMax) {
+          pixels[p] = maskR; pixels[p + 1] = maskG; pixels[p + 2] = maskB; pixels[p + 3] = 255;
           continue;
         }
 

@@ -14,7 +14,7 @@ export interface ViewerState {
   exposureMax: number; // raw value mapped to white
   colormap: ColormapName;
   downsampleMode: 'average' | 'max';
-  maskEnabled: boolean;
+  showMask: boolean; // true = red overlay on masked pixels, false = white
 }
 
 export type ColormapName = 'grayscale' | 'inverse' | 'heat' | 'rainbow';

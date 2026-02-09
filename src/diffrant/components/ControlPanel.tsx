@@ -40,6 +40,16 @@ export function ControlPanel({
         }
         visible={viewerState.zoom < 1}
       />
+      <label className="control-panel-checkbox">
+        <input
+          type="checkbox"
+          checked={viewerState.showMask}
+          onChange={(e) =>
+            onViewerStateChange({ ...viewerState, showMask: e.target.checked })
+          }
+        />
+        Show mask
+      </label>
       <div className="control-panel-section">
         <div className="control-panel-label">Pixel</div>
         {cursorInfo ? (

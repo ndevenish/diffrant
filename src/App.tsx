@@ -7,10 +7,10 @@ const DEFAULT_STATE: ViewerState = {
   pan: { x: 2074, y: 2181 }, // center of 4148x4362
   zoom: 0.2,
   exposureMin: 0,
-  exposureMax: 1000,
+  exposureMax: 256,
   colormap: 'inverse',
   downsampleMode: 'max',
-  maskEnabled: true,
+  showMask: false,
 };
 
 function App() {
