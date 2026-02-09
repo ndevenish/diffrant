@@ -151,7 +151,7 @@ export function renderRegion(
   ctx.putImageData(imgData, 0, 0);
 
   // Draw pixel value text when zoomed in far enough
-  const MIN_ZOOM_FOR_TEXT = 40;
+  const MIN_ZOOM_FOR_TEXT = 30;
   if (zoom >= MIN_ZOOM_FOR_TEXT) {
     // Compute visible image pixel range
     const imgXStart = Math.floor((0 - halfCanvasW) / zoom + pan.x);
@@ -183,6 +183,20 @@ export function renderRegion(
       }
     }
   }
+
+  // Draw beam center marker
+  const [bcX, bcY] = metadata.beam_center;
+  const bcCanvasX = (bcX - pan.x) * zoom + halfCanvasW;
+  const bcCanvasY = (bcY - pan.y) * zoom + halfCanvasH;
+  const armLen = Math.max(8, zoom * 0.5);
+  ctx.strokeStyle = '#4a90d9';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(bcCanvasX - armLen, bcCanvasY);
+  ctx.lineTo(bcCanvasX + armLen, bcCanvasY);
+  ctx.moveTo(bcCanvasX, bcCanvasY - armLen);
+  ctx.lineTo(bcCanvasX, bcCanvasY + armLen);
+  ctx.stroke();
 }
 
 function depth2max(depth: 8 | 16 | 32): number {
