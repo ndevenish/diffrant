@@ -1,0 +1,17 @@
+.control-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px;
+  background: #1e1e1e;
+  border-left: 1px solid #333;
+  overflow-y: auto;
+  min-width: 300px;
+  max-width: 300px;
+}
+
+.control-panel-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
