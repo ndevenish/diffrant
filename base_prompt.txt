@@ -1,0 +1,36 @@
+Generate a vite/react/typescript project. The purpose of the project is
+to create a react component called "diffrant". This will be an image
+viewer for viewing diffraction images (all grayscale, 8/16/32 bit).
+
+There are sample data in public/data/se_thau_10_1_00001.{json,png}. The
+json should be treated as an endpoint to load metadata about the image.
+The png image is one of the example images; in reality these will be
+dynamic endpoints. The sample image is png, but the handling should be
+abstracted to the point that it can accomodate different image
+decompression formats in the future (e.g. a raw image dump with the size
+data in the metadata endpoint).
+
+The input to the component should be the two endpoints for metadata and
+image, an image "number" that is intended to choose from multi-image
+formats (will be relevant later) and a viewer state object, which can
+be updated from within the component.
+
+The component itself: It should be split into image, left, and a controls
+panel on the right. By default, the whole image should be displayed, but
+the user can drag/pan/zoom the image to inspect the data more thorougly.
+The pixel data should always show nearest-neighbor, no filtering on zoom,
+but on zooming out to smaller sizes should have a choice of resolution
+(e.g. average, max pixel over combined area). By default, masked pixels
+should show as background; for now, masked = "above trusted range from
+metadata" but eventually we will load a separate mask layer.
+
+The panel on the right should have several controls; the most important
+of which is a draggable histogram of the image data, that can be used to
+affect the exposure for calculation of image brightness. Also on the
+toolbar, a "colour scheme" selector that allows normal (0=white),
+inverse (0=black) and other relevant colour schemes.
+
+At some point in the future, we will want to be able to render "numbers"
+on each pixel block when zoomed all the way in, allowing the user to
+directly read off the value. But we don't need to implement that yet -
+this eventual use case should factor into the technology choice.
