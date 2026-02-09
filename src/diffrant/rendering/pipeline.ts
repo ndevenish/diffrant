@@ -172,9 +172,18 @@ export function renderRegion(
         const cx = (ix - pan.x + 0.5) * zoom + halfCanvasW;
         const cy = (iy - pan.y + 0.5) * zoom + halfCanvasH;
 
-        // Pick text color contrasting with background
-        const lutVal = (rawVal <= trustedMax) ? (lut[rawVal] ?? 255) : 0;
-        ctx.fillStyle = lutVal > 127 ? '#000' : '#fff';
+        // Pick text color contrasting with the actual rendered pixel color
+        let bgR: number, bgG: number, bgB: number;
+        if (rawVal > trustedMax) {
+          bgR = maskR; bgG = maskG; bgB = maskB;
+        } else {
+          const lv = lut[rawVal] ?? 255;
+          const cmOff = lv * 4;
+          bgR = colormap[cmOff]; bgG = colormap[cmOff + 1]; bgB = colormap[cmOff + 2];
+        }
+        // Perceived luminance
+        const lum = bgR * 0.299 + bgG * 0.587 + bgB * 0.114;
+        ctx.fillStyle = lum > 127 ? '#000' : '#fff';
 
         ctx.fillText(String(rawVal), cx, cy);
       }
