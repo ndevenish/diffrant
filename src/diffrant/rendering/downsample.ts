@@ -17,7 +17,7 @@ export function downsampleBlock(
   const endY = Math.min(startY + blockSize, height);
 
   if (mode === 'max') {
-    let maxVal = 0;
+    let maxVal = -1;
     for (let y = startY; y < endY; y++) {
       const rowOffset = y * width;
       for (let x = startX; x < endX; x++) {
@@ -27,7 +27,8 @@ export function downsampleBlock(
         }
       }
     }
-    return maxVal;
+    // All pixels masked → return above trustedMax so pipeline renders as mask
+    return maxVal >= 0 ? maxVal : trustedMax + 1;
   }
 
   // average mode
@@ -43,5 +44,6 @@ export function downsampleBlock(
       }
     }
   }
-  return count > 0 ? Math.round(sum / count) : 0;
+  // All pixels masked → return above trustedMax so pipeline renders as mask
+  return count > 0 ? Math.round(sum / count) : trustedMax + 1;
 }
