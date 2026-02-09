@@ -16,3 +16,32 @@
   border-radius: 4px;
   border: 1px solid #333;
 }
+
+.histogram-inputs {
+  display: flex;
+  gap: 8px;
+}
+
+.histogram-input-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #aaa;
+}
+
+.histogram-input {
+  width: 70px;
+  padding: 2px 4px;
+  font-size: 12px;
+  font-family: monospace;
+  color: #ccc;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  border-radius: 3px;
+}
+
+.histogram-input:focus {
+  outline: none;
+  border-color: #4a90d9;
+}

@@ -163,6 +163,16 @@ export function Histogram({
     setDragging(null);
   }, []);
 
+  const handleInputChange = useCallback(
+    (field: 'exposureMin' | 'exposureMax', value: string) => {
+      const num = parseInt(value, 10);
+      if (!isNaN(num)) {
+        onViewerStateChange({ ...viewerState, [field]: Math.max(0, num) });
+      }
+    },
+    [viewerState, onViewerStateChange],
+  );
+
   return (
     <div className="histogram-container">
       <div className="histogram-label">Exposure</div>
@@ -176,6 +186,28 @@ export function Histogram({
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       />
+      <div className="histogram-inputs">
+        <label className="histogram-input-label">
+          Min
+          <input
+            type="number"
+            className="histogram-input"
+            value={Math.round(viewerState.exposureMin)}
+            onChange={(e) => handleInputChange('exposureMin', e.target.value)}
+            min={0}
+          />
+        </label>
+        <label className="histogram-input-label">
+          Max
+          <input
+            type="number"
+            className="histogram-input"
+            value={Math.round(viewerState.exposureMax)}
+            onChange={(e) => handleInputChange('exposureMax', e.target.value)}
+            min={0}
+          />
+        </label>
+      </div>
     </div>
   );
 }
