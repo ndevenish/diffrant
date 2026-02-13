@@ -25,15 +25,18 @@ export function useImageLoader(
 
     async function load() {
       try {
-        const [metaResponse, imageResponse] = await Promise.all([
-          fetch(metadataUrl),
-          fetch(imageUrl),
-        ]);
-
+        // Fetch metadata first (needed by raw loader to know dimensions)
+        const metaResponse = await fetch(metadataUrl);
         if (!metaResponse.ok) throw new Error(`Failed to fetch metadata: ${metaResponse.status}`);
-        if (!imageResponse.ok) throw new Error(`Failed to fetch image: ${imageResponse.status}`);
-
         const meta: ImageMetadata = await metaResponse.json();
+
+        if (cancelled) return;
+
+        // Request raw binary by default (much faster), fall back to png
+        const imageResponse = await fetch(imageUrl, {
+          headers: { 'Accept': 'application/octet-stream' },
+        });
+        if (!imageResponse.ok) throw new Error(`Failed to fetch image: ${imageResponse.status}`);
         const imageBuffer = await imageResponse.arrayBuffer();
 
         if (cancelled) return;
@@ -41,7 +44,9 @@ export function useImageLoader(
         // Detect format from Content-Type header, falling back to URL extension
         const contentType = imageResponse.headers.get('content-type') ?? '';
         let format: string;
-        if (contentType.includes('png')) {
+        if (contentType.includes('octet-stream')) {
+          format = 'raw';
+        } else if (contentType.includes('png')) {
           format = 'png';
         } else {
           format = imageUrl.split('.').pop()?.toLowerCase() ?? 'png';

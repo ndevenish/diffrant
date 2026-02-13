@@ -1,8 +1,10 @@
 import type { ImageLoader } from './types';
 import { pngLoader } from './pngLoader';
+import { rawLoader } from './rawLoader';
 
 const loaders: Record<string, ImageLoader> = {
   png: pngLoader,
+  raw: rawLoader,
 };
 
 export function getLoader(format: string): ImageLoader {
