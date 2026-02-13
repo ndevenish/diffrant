@@ -37,8 +37,12 @@ export function ImageCanvas({
   onCursorRef.current = onCursorChange;
 
   // Sync from props (exposure/colormap changes from ControlPanel, etc.)
+  // Skip during drag — liveState is authoritative while the user is interacting,
+  // and the prop update lags behind, causing a flicker to the previous position.
   useEffect(() => {
-    liveState.current = viewerState;
+    if (!isDragging.current) {
+      liveState.current = viewerState;
+    }
   }, [viewerState]);
 
   // Minimum zoom: image fills ~90% of frame
