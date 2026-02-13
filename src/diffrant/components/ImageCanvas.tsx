@@ -25,24 +25,66 @@ export function ImageCanvas({
   const lastMouse = useRef({ x: 0, y: 0 });
   const hasAutoFit = useRef(false);
 
+  // Live viewer state — updated from props AND directly from mouse handlers.
+  // Canvas renders from this ref, avoiding a full React round-trip per frame.
+  const liveState = useRef(viewerState);
+  const rafId = useRef(0);
+
+  // Keep callback refs stable so mouse handlers don't need re-creation
+  const onChangeRef = useRef(onViewerStateChange);
+  onChangeRef.current = onViewerStateChange;
+  const onCursorRef = useRef(onCursorChange);
+  onCursorRef.current = onCursorChange;
+
+  // Sync from props (exposure/colormap changes from ControlPanel, etc.)
+  useEffect(() => {
+    liveState.current = viewerState;
+  }, [viewerState]);
+
   // Minimum zoom: image fills ~90% of frame
   const minZoom = canvasSize.width > 0 && canvasSize.height > 0
     ? 0.9 * Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height)
     : 0.01;
 
+  // Schedule a canvas render — coalesces via single RAF
+  const scheduleRender = useCallback(() => {
+    cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(() => {
+      const canvas = canvasRef.current;
+      if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) return;
+
+      canvas.width = canvasSize.width;
+      canvas.height = canvasSize.height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const vs = liveState.current;
+      const lut = buildLUT(imageData.depth, vs.exposureMin, vs.exposureMax);
+      const colormap = getColormapTable(vs.colormap);
+      renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, vs, metadata, lut, colormap);
+    });
+  }, [canvasSize, imageData, metadata]);
+
+  // Re-render when props change (exposure, colormap, canvas resize, etc.)
+  useEffect(() => {
+    scheduleRender();
+  }, [viewerState, scheduleRender]);
+
   // Auto-fit: compute zoom to fit image on first canvas size
   useEffect(() => {
     if (hasAutoFit.current || canvasSize.width === 0 || canvasSize.height === 0) return;
     hasAutoFit.current = true;
-    const zoomX = canvasSize.width / imageData.width;
-    const zoomY = canvasSize.height / imageData.height;
-    const fitZoom = Math.min(zoomX, zoomY);
-    onViewerStateChange({
-      ...viewerState,
+    const fitZoom = Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height);
+    const newState: ViewerState = {
+      ...liveState.current,
       pan: { x: imageData.width / 2, y: imageData.height / 2 },
       zoom: fitZoom,
-    });
-  }, [canvasSize, imageData, viewerState, onViewerStateChange]);
+    };
+    liveState.current = newState;
+    onChangeRef.current(newState);
+    scheduleRender();
+  }, [canvasSize, imageData, scheduleRender]);
 
   // Resize observer
   useEffect(() => {
@@ -65,39 +107,7 @@ export function ImageCanvas({
     return () => observer.disconnect();
   }, []);
 
-  // Render with requestAnimationFrame to avoid stacking during rapid updates
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) return;
-
-    const frameId = requestAnimationFrame(() => {
-      canvas.width = canvasSize.width;
-      canvas.height = canvasSize.height;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const lut = buildLUT(imageData.depth, viewerState.exposureMin, viewerState.exposureMax);
-      const colormap = getColormapTable(viewerState.colormap);
-
-      renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, viewerState, metadata, lut, colormap);
-    });
-
-    return () => cancelAnimationFrame(frameId);
-  }, [imageData, metadata, viewerState, canvasSize]);
-
-  // Mouse → image coordinate conversion
-  const canvasToImage = useCallback(
-    (cx: number, cy: number) => {
-      const { pan, zoom } = viewerState;
-      const imgX = (cx - canvasSize.width / 2) / zoom + pan.x;
-      const imgY = (cy - canvasSize.height / 2) / zoom + pan.y;
-      return { imgX, imgY };
-    },
-    [viewerState, canvasSize],
-  );
-
-  // Wheel zoom
+  // Wheel zoom — updates ref directly, renders via RAF, notifies React
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       e.preventDefault();
@@ -106,22 +116,27 @@ export function ImageCanvas({
 
       const cx = e.clientX - rect.left;
       const cy = e.clientY - rect.top;
-      const { imgX, imgY } = canvasToImage(cx, cy);
+      const vs = liveState.current;
+
+      const imgX = (cx - canvasSize.width / 2) / vs.zoom + vs.pan.x;
+      const imgY = (cy - canvasSize.height / 2) / vs.zoom + vs.pan.y;
 
       const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newZoom = Math.max(minZoom, Math.min(100, viewerState.zoom * zoomFactor));
+      const newZoom = Math.max(minZoom, Math.min(100, vs.zoom * zoomFactor));
 
-      // Adjust pan so the image point under cursor stays under cursor
-      const newPanX = imgX - (cx - canvasSize.width / 2) / newZoom;
-      const newPanY = imgY - (cy - canvasSize.height / 2) / newZoom;
-
-      onViewerStateChange({
-        ...viewerState,
+      const newState: ViewerState = {
+        ...vs,
         zoom: newZoom,
-        pan: { x: newPanX, y: newPanY },
-      });
+        pan: {
+          x: imgX - (cx - canvasSize.width / 2) / newZoom,
+          y: imgY - (cy - canvasSize.height / 2) / newZoom,
+        },
+      };
+      liveState.current = newState;
+      scheduleRender();
+      onChangeRef.current(newState);
     },
-    [viewerState, onViewerStateChange, canvasToImage, canvasSize, minZoom],
+    [canvasSize, minZoom, scheduleRender],
   );
 
   // Drag to pan
@@ -139,14 +154,16 @@ export function ImageCanvas({
       if (rect) {
         const cx = e.clientX - rect.left;
         const cy = e.clientY - rect.top;
-        const { imgX, imgY } = canvasToImage(cx, cy);
+        const vs = liveState.current;
+        const imgX = (cx - canvasSize.width / 2) / vs.zoom + vs.pan.x;
+        const imgY = (cy - canvasSize.height / 2) / vs.zoom + vs.pan.y;
         const ix = Math.floor(imgX);
         const iy = Math.floor(imgY);
         if (ix >= 0 && ix < imageData.width && iy >= 0 && iy < imageData.height) {
           const value = imageData.data[iy * imageData.width + ix];
-          onCursorChange({ fast: ix, slow: iy, value });
+          onCursorRef.current({ fast: ix, slow: iy, value });
         } else {
-          onCursorChange(null);
+          onCursorRef.current(null);
         }
       }
 
@@ -156,15 +173,19 @@ export function ImageCanvas({
       const dy = e.clientY - lastMouse.current.y;
       lastMouse.current = { x: e.clientX, y: e.clientY };
 
-      onViewerStateChange({
-        ...viewerState,
+      const vs = liveState.current;
+      const newState: ViewerState = {
+        ...vs,
         pan: {
-          x: viewerState.pan.x - dx / viewerState.zoom,
-          y: viewerState.pan.y - dy / viewerState.zoom,
+          x: vs.pan.x - dx / vs.zoom,
+          y: vs.pan.y - dy / vs.zoom,
         },
-      });
+      };
+      liveState.current = newState;
+      scheduleRender();
+      onChangeRef.current(newState);
     },
-    [viewerState, onViewerStateChange, canvasToImage, imageData, onCursorChange],
+    [canvasSize, imageData, scheduleRender],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -173,8 +194,8 @@ export function ImageCanvas({
 
   const handleMouseLeave = useCallback(() => {
     isDragging.current = false;
-    onCursorChange(null);
-  }, [onCursorChange]);
+    onCursorRef.current(null);
+  }, []);
 
   return (
     <div className="image-canvas-container" ref={containerRef}>

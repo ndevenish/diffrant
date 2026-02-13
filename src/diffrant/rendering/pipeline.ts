@@ -1,7 +1,6 @@
 import type { RawImageData, ViewerState, ImageMetadata } from '../types';
 import type { ColormapTable } from './colormaps';
 import { getColormapTable } from './colormaps';
-import { downsampleBlock } from './downsample';
 
 /**
  * Build a lookup table mapping raw pixel values → 0-255 based on exposure range.
@@ -110,40 +109,95 @@ export function renderRegion(
       }
     }
   } else {
-    // Zoomed out — downsample
-    const blockSize = 1 / zoom;
+    // Zoomed out — inline downsample (avoids per-pixel function call overhead)
+    const blockSizeI = Math.ceil(1 / zoom);
 
-    for (let cy = 0; cy < canvasHeight; cy++) {
-      const imgYf = (cy - halfCanvasH) / zoom + pan.y;
-      const canvasRowOffset = cy * canvasWidth * 4;
-
-      for (let cx = 0; cx < canvasWidth; cx++) {
-        const imgXf = (cx - halfCanvasW) / zoom + pan.x;
-        const p = canvasRowOffset + cx * 4;
-
-        const startX = Math.floor(imgXf);
+    // Hoist mode branch out of the hot pixel loop
+    if (downsampleMode === 'max') {
+      for (let cy = 0; cy < canvasHeight; cy++) {
+        const imgYf = (cy - halfCanvasH) / zoom + pan.y;
         const startY = Math.floor(imgYf);
+        const canvasRowOffset = cy * canvasWidth * 4;
 
-        if (startX < 0 || startY < 0 || startX >= imgW || startY >= imgH) {
-          pixels[p] = BG_R; pixels[p + 1] = BG_G; pixels[p + 2] = BG_B; pixels[p + 3] = BG_A;
-          continue;
+        for (let cx = 0; cx < canvasWidth; cx++) {
+          const p = canvasRowOffset + cx * 4;
+          const imgXf = (cx - halfCanvasW) / zoom + pan.x;
+          const startX = Math.floor(imgXf);
+
+          if (startX < 0 || startY < 0 || startX >= imgW || startY >= imgH) {
+            pixels[p] = BG_R; pixels[p + 1] = BG_G; pixels[p + 2] = BG_B; pixels[p + 3] = BG_A;
+            continue;
+          }
+
+          // Inline max downsample
+          const endX = startX + blockSizeI < imgW ? startX + blockSizeI : imgW;
+          const endY = startY + blockSizeI < imgH ? startY + blockSizeI : imgH;
+          let maxVal = -1;
+          for (let by = startY; by < endY; by++) {
+            const ro = by * imgW;
+            for (let bx = startX; bx < endX; bx++) {
+              const v = rawData[ro + bx];
+              if (v <= trustedMax && v > maxVal) maxVal = v;
+            }
+          }
+          const rawVal = maxVal >= 0 ? maxVal : trustedMax + 1;
+
+          if (rawVal > trustedMax) {
+            pixels[p] = maskR; pixels[p + 1] = maskG; pixels[p + 2] = maskB; pixels[p + 3] = 255;
+            continue;
+          }
+
+          const lutVal = lut[rawVal] ?? 255;
+          const cmOffset = lutVal * 4;
+          pixels[p] = colormap[cmOffset];
+          pixels[p + 1] = colormap[cmOffset + 1];
+          pixels[p + 2] = colormap[cmOffset + 2];
+          pixels[p + 3] = colormap[cmOffset + 3];
         }
+      }
+    } else {
+      // average mode
+      for (let cy = 0; cy < canvasHeight; cy++) {
+        const imgYf = (cy - halfCanvasH) / zoom + pan.y;
+        const startY = Math.floor(imgYf);
+        const canvasRowOffset = cy * canvasWidth * 4;
 
-        const rawVal = downsampleBlock(
-          imageData, startX, startY, Math.ceil(blockSize), downsampleMode, trustedMax,
-        );
+        for (let cx = 0; cx < canvasWidth; cx++) {
+          const p = canvasRowOffset + cx * 4;
+          const imgXf = (cx - halfCanvasW) / zoom + pan.x;
+          const startX = Math.floor(imgXf);
 
-        if (rawVal > trustedMax) {
-          pixels[p] = maskR; pixels[p + 1] = maskG; pixels[p + 2] = maskB; pixels[p + 3] = 255;
-          continue;
+          if (startX < 0 || startY < 0 || startX >= imgW || startY >= imgH) {
+            pixels[p] = BG_R; pixels[p + 1] = BG_G; pixels[p + 2] = BG_B; pixels[p + 3] = BG_A;
+            continue;
+          }
+
+          // Inline average downsample
+          const endX = startX + blockSizeI < imgW ? startX + blockSizeI : imgW;
+          const endY = startY + blockSizeI < imgH ? startY + blockSizeI : imgH;
+          let sum = 0;
+          let count = 0;
+          for (let by = startY; by < endY; by++) {
+            const ro = by * imgW;
+            for (let bx = startX; bx < endX; bx++) {
+              const v = rawData[ro + bx];
+              if (v <= trustedMax) { sum += v; count++; }
+            }
+          }
+          const rawVal = count > 0 ? Math.round(sum / count) : trustedMax + 1;
+
+          if (rawVal > trustedMax) {
+            pixels[p] = maskR; pixels[p + 1] = maskG; pixels[p + 2] = maskB; pixels[p + 3] = 255;
+            continue;
+          }
+
+          const lutVal = lut[rawVal] ?? 255;
+          const cmOffset = lutVal * 4;
+          pixels[p] = colormap[cmOffset];
+          pixels[p + 1] = colormap[cmOffset + 1];
+          pixels[p + 2] = colormap[cmOffset + 2];
+          pixels[p + 3] = colormap[cmOffset + 3];
         }
-
-        const lutVal = lut[rawVal] ?? 255;
-        const cmOffset = lutVal * 4;
-        pixels[p] = colormap[cmOffset];
-        pixels[p + 1] = colormap[cmOffset + 1];
-        pixels[p + 2] = colormap[cmOffset + 2];
-        pixels[p + 3] = colormap[cmOffset + 3];
       }
     }
   }

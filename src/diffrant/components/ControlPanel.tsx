@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { RawImageData, ImageMetadata, ViewerState, ColormapName, CursorInfo } from '../types';
 import { Histogram } from './Histogram';
 import { ColormapSelector } from './ColormapSelector';
@@ -12,7 +13,7 @@ interface ControlPanelProps {
   cursorInfo: CursorInfo | null;
 }
 
-export function ControlPanel({
+export const ControlPanel = memo(function ControlPanel({
   imageData,
   metadata,
   viewerState,
@@ -73,4 +74,17 @@ export function ControlPanel({
       </div>
     </div>
   );
-}
+}, (prev, next) => {
+  // Skip re-render when only pan/zoom changed (the hot path during interaction)
+  return prev.imageData === next.imageData
+    && prev.metadata === next.metadata
+    && prev.viewerState.exposureMin === next.viewerState.exposureMin
+    && prev.viewerState.exposureMax === next.viewerState.exposureMax
+    && prev.viewerState.colormap === next.viewerState.colormap
+    && prev.viewerState.downsampleMode === next.viewerState.downsampleMode
+    && prev.viewerState.showMask === next.viewerState.showMask
+    && (prev.viewerState.zoom < 1) === (next.viewerState.zoom < 1)
+    && prev.cursorInfo?.fast === next.cursorInfo?.fast
+    && prev.cursorInfo?.slow === next.cursorInfo?.slow
+    && prev.cursorInfo?.value === next.cursorInfo?.value;
+});
