@@ -38,9 +38,15 @@ export function useImageLoader(
 
         if (cancelled) return;
 
-        // Detect format from URL extension
-        const ext = imageUrl.split('.').pop()?.toLowerCase() ?? 'png';
-        const loader = getLoader(ext);
+        // Detect format from Content-Type header, falling back to URL extension
+        const contentType = imageResponse.headers.get('content-type') ?? '';
+        let format: string;
+        if (contentType.includes('png')) {
+          format = 'png';
+        } else {
+          format = imageUrl.split('.').pop()?.toLowerCase() ?? 'png';
+        }
+        const loader = getLoader(format);
         const raw = loader.load(imageBuffer, meta);
 
         if (cancelled) return;
