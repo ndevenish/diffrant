@@ -83,7 +83,7 @@ export const ControlPanel = memo(function ControlPanel({
     && prev.viewerState.colormap === next.viewerState.colormap
     && prev.viewerState.downsampleMode === next.viewerState.downsampleMode
     && prev.viewerState.showMask === next.viewerState.showMask
-    && (prev.viewerState.zoom < 1) === (next.viewerState.zoom < 1)
+    && prev.viewerState.zoom === next.viewerState.zoom
     && prev.cursorInfo?.fast === next.cursorInfo?.fast
     && prev.cursorInfo?.slow === next.cursorInfo?.slow
     && prev.cursorInfo?.value === next.cursorInfo?.value;
