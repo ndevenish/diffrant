@@ -196,6 +196,18 @@ export function ImageCanvas({
     isDragging.current = false;
   }, []);
 
+  const handleDoubleClick = useCallback(() => {
+    const fitZoom = Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height);
+    const newState: ViewerState = {
+      ...liveState.current,
+      pan: { x: imageData.width / 2, y: imageData.height / 2 },
+      zoom: fitZoom,
+    };
+    liveState.current = newState;
+    scheduleRender();
+    onChangeRef.current(newState);
+  }, [canvasSize, imageData, scheduleRender]);
+
   const handleMouseLeave = useCallback(() => {
     isDragging.current = false;
     onCursorRef.current(null);
@@ -210,6 +222,7 @@ export function ImageCanvas({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
+        onDoubleClick={handleDoubleClick}
         onMouseLeave={handleMouseLeave}
       />
     </div>
