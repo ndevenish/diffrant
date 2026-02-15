@@ -2,7 +2,7 @@
     "panel_distance": 300,
     "beam_center": [
         2000,
-        2000
+        2010
     ],
     "pixel_size": 75e-6,
     "panel_size_fast_slow": [
@@ -10,5 +10,6 @@
         4362
     ],
     "image_depth": 16,
-    "trusted_range_max": 32000
+    "trusted_range_max": 32000,
+    "energy_kev": 12.4
 }
