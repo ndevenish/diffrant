@@ -39,7 +39,6 @@ export const ControlPanel = memo(function ControlPanel({
         onChange={(downsampleMode) =>
           onViewerStateChange({ ...viewerState, downsampleMode })
         }
-        visible={viewerState.zoom < 1}
       />
       <label className="control-panel-checkbox">
         <input
