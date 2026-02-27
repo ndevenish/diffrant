@@ -258,7 +258,11 @@ export function renderRegion(
   }
 }
 
-const RESOLUTION_RINGS_ANGSTROM = [1, 2, 3, 4, 5];
+const ALL_RESOLUTION_RINGS_ANGSTROM = [
+  50.0, 20.0, 10.0, 8.0, 6.0, 5.0, 4.0,
+  3.5, 3.0, 2.5, 2.0, 1.8, 1.5, 1.4, 1.2,
+  1.0, 0.9, 0.8,
+];
 
 function drawResolutionRings(
   ctx: CanvasRenderingContext2D,
@@ -267,15 +271,32 @@ function drawResolutionRings(
   metadata: ImageMetadata,
   viewState: ViewerState,
 ): void {
-  const { beam_energy_kev, beam_center, panel_distance_mm, pixel_size } = metadata;
+  const { beam_energy_kev, beam_center, panel_distance_mm, pixel_size, panel_size_fast_slow } = metadata;
   if (!beam_energy_kev) return;
 
   const wavelength = 12.398419843 / beam_energy_kev; // Å
+  const [bcX, bcY] = beam_center;
+  const [imgW, imgH] = panel_size_fast_slow;
+
+  // Resolution at the detector edge: use the farthest corner from the beam center
+  const maxRPx = Math.max(
+    Math.sqrt((0 - bcX) ** 2 + (0 - bcY) ** 2),
+    Math.sqrt((imgW - bcX) ** 2 + (0 - bcY) ** 2),
+    Math.sqrt((0 - bcX) ** 2 + (imgH - bcY) ** 2),
+    Math.sqrt((imgW - bcX) ** 2 + (imgH - bcY) ** 2),
+  );
+  const twoThetaEdge = Math.atan2(maxRPx * pixel_size, panel_distance_mm);
+  const dEdge = wavelength / (2 * Math.sin(twoThetaEdge / 2));
+
+  // From the candidate list, keep rings visible on the detector (d >= dEdge),
+  // then take the 5 with the smallest d-spacing (closest to the edge)
+  const visible = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dEdge);
+  const rings = visible.slice(-5);
+  if (rings.length === 0) return;
+
   const { pan, zoom } = viewState;
   const halfCanvasW = canvasWidth / 2;
   const halfCanvasH = canvasHeight / 2;
-
-  const [bcX, bcY] = beam_center;
   const bcCanvasX = (bcX - pan.x) * zoom + halfCanvasW;
   const bcCanvasY = (bcY - pan.y) * zoom + halfCanvasH;
 
@@ -288,9 +309,9 @@ function drawResolutionRings(
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
 
-  for (const d of RESOLUTION_RINGS_ANGSTROM) {
+  for (const d of rings) {
     const sinTheta = wavelength / (2 * d);
-    if (sinTheta >= 1) continue; // not achievable at this energy
+    if (sinTheta >= 1) continue;
     const twoTheta = 2 * Math.asin(sinTheta);
     const rCanvas = (panel_distance_mm * Math.tan(twoTheta) / pixel_size) * zoom;
 
