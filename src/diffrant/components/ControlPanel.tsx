@@ -84,6 +84,9 @@ export const ControlPanel = memo(function ControlPanel({
         <div style={{ fontSize: 12, color: '#ccc' }}>
           Zoom: {(viewerState.zoom * 100).toFixed(1)}%
         </div>
+        <div style={{ fontSize: 12, color: '#ccc' }}>
+          Distance: {metadata.panel_distance_mm.toFixed(1)} mm
+        </div>
         {metadata.beam_energy_kev !== undefined && (
           <div style={{ fontSize: 12, color: '#ccc' }}>
             Energy: {metadata.beam_energy_kev.toFixed(3)} keV
