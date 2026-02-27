@@ -204,6 +204,18 @@ export function ImageCanvas({
     onCursorRef.current(null);
   }, []);
 
+  const handleDoubleClick = useCallback(() => {
+    const fitZoom = Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height);
+    const newState: ViewerState = {
+      ...liveState.current,
+      zoom: fitZoom,
+      pan: { x: imageData.width / 2, y: imageData.height / 2 },
+    };
+    liveState.current = newState;
+    scheduleRender();
+    onChangeRef.current(newState);
+  }, [canvasSize, imageData, scheduleRender]);
+
   return (
     <div className="image-canvas-container" ref={containerRef}>
       <canvas
@@ -214,6 +226,7 @@ export function ImageCanvas({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onDoubleClick={handleDoubleClick}
       />
     </div>
   );
