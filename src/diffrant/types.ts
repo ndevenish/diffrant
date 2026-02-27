@@ -5,6 +5,7 @@ export interface ImageMetadata {
   panel_size_fast_slow: [number, number]; // [width, height]
   image_depth: 8 | 16 | 32;
   trusted_range_max: number;
+  beam_energy_kev?: number;
 }
 
 export interface ViewerState {
