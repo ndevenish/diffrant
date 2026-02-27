@@ -13,6 +13,20 @@ npm run lint
 
 The dev server loads a bundled sample image (`public/data/se_thau_10_1_00001.png`, 4148×4362 16-bit PNG) with its accompanying metadata JSON. No backend required.
 
+## Installation
+
+Diffrant is not yet published to npm. Install directly from git:
+
+```bash
+npm install git+https://github.com/DiamondLightSource/diffrant.git
+```
+
+Then import the stylesheet once at your app root:
+
+```ts
+import 'diffrant/style.css';
+```
+
 ## Usage
 
 ```tsx
