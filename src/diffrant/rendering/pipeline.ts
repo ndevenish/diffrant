@@ -326,6 +326,14 @@ function drawResolutionRings(
   const labelTextBaseline = labelDirY > 0.1 ? 'top' : labelDirY < -0.1 ? 'bottom' : 'middle';
 
   ctx.save();
+
+  // Clip to the image rectangle so rings don't bleed into the background
+  const imgLeft = (0 - pan.x) * zoom + halfCanvasW;
+  const imgTop = (0 - pan.y) * zoom + halfCanvasH;
+  ctx.beginPath();
+  ctx.rect(imgLeft, imgTop, imgW * zoom, imgH * zoom);
+  ctx.clip();
+
   ctx.strokeStyle = 'rgba(255, 60, 60, 0.85)';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 4]);
