@@ -289,13 +289,15 @@ function drawResolutionRings(
   const dCorner = wavelength / (2 * Math.sin(twoThetaCorner / 2));
 
   // Evenly divide d*² = 1/d² from 0 to 1/dCorner² into N steps,
-  // then snap each target to the nearest candidate d-spacing
+  // snapping each target to the nearest candidate that lies within the corners
   const N = 5;
   const dStarSqMax = 1 / (dCorner * dCorner);
+  const withinCorners = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dCorner);
+  if (withinCorners.length === 0) return;
   const rings = Array.from({ length: N }, (_, i) => {
     const targetDStarSq = ((i + 1) / N) * dStarSqMax;
     const targetD = 1 / Math.sqrt(targetDStarSq);
-    return ALL_RESOLUTION_RINGS_ANGSTROM.reduce((best, d) =>
+    return withinCorners.reduce((best, d) =>
       Math.abs(d - targetD) < Math.abs(best - targetD) ? d : best
     );
   });
