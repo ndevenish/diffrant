@@ -278,20 +278,32 @@ function drawResolutionRings(
   const [bcX, bcY] = beam_center;
   const [imgW, imgH] = panel_size_fast_slow;
 
-  // Resolution at the detector edge: use the farthest corner from the beam center
-  const maxRPx = Math.max(
-    Math.sqrt((0 - bcX) ** 2 + (0 - bcY) ** 2),
-    Math.sqrt((imgW - bcX) ** 2 + (0 - bcY) ** 2),
-    Math.sqrt((0 - bcX) ** 2 + (imgH - bcY) ** 2),
+  const rToD = (rPx: number) => {
+    const twoTheta = Math.atan2(rPx * pixel_size, panel_distance_mm);
+    return wavelength / (2 * Math.sin(twoTheta / 2));
+  };
+
+  // d at the nearest perpendicular edge (inscribed circle)
+  const minEdgePx = Math.min(bcX, imgW - bcX, bcY, imgH - bcY);
+  const dPerp = rToD(minEdgePx);
+
+  // d at the farthest corner (circumscribed circle)
+  const maxCornerPx = Math.max(
+    Math.sqrt(bcX ** 2 + bcY ** 2),
+    Math.sqrt((imgW - bcX) ** 2 + bcY ** 2),
+    Math.sqrt(bcX ** 2 + (imgH - bcY) ** 2),
     Math.sqrt((imgW - bcX) ** 2 + (imgH - bcY) ** 2),
   );
-  const twoThetaEdge = Math.atan2(maxRPx * pixel_size, panel_distance_mm);
-  const dEdge = wavelength / (2 * Math.sin(twoThetaEdge / 2));
+  const dCorner = rToD(maxCornerPx);
 
-  // From the candidate list, keep rings visible on the detector (d >= dEdge),
-  // then take the 5 with the smallest d-spacing (closest to the edge)
-  const visible = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dEdge);
-  const rings = visible.slice(-5);
+  // 4 rings inside the inscribed circle (d >= dPerp, 4 with smallest d)
+  const insidePerp = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dPerp);
+  const innerRings = insidePerp.slice(-4);
+
+  // Extra rings in the corner area (dCorner <= d < dPerp)
+  const cornerRings = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dCorner && d < dPerp);
+
+  const rings = [...cornerRings, ...innerRings];
   if (rings.length === 0) return;
 
   const { pan, zoom } = viewState;
