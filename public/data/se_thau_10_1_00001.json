@@ -4,11 +4,12 @@
         2000,
         2000
     ],
-    "pixel_size": 75e-6,
+    "pixel_size": 0.075,
     "panel_size_fast_slow": [
         4148,
         4362
     ],
     "image_depth": 16,
-    "trusted_range_max": 32000
+    "trusted_range_max": 32000,
+    "beam_energy_kev": 12.4
 }
