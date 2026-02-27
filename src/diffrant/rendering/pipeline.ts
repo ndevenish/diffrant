@@ -278,13 +278,19 @@ function drawResolutionRings(
   const [bcX, bcY] = beam_center;
   const [imgW, imgH] = panel_size_fast_slow;
 
-  // d-spacing at the farthest corner
-  const maxCornerPx = Math.max(
-    Math.sqrt(bcX ** 2 + bcY ** 2),
-    Math.sqrt((imgW - bcX) ** 2 + bcY ** 2),
-    Math.sqrt(bcX ** 2 + (imgH - bcY) ** 2),
-    Math.sqrt((imgW - bcX) ** 2 + (imgH - bcY) ** 2),
-  );
+  // Find the farthest corner and its unit direction from the beam center
+  const corners: [number, number][] = [[0, 0], [imgW, 0], [0, imgH], [imgW, imgH]];
+  let maxCornerPx = 0;
+  let labelDirX = 1;
+  let labelDirY = -1;
+  for (const [cx, cy] of corners) {
+    const dist = Math.sqrt((cx - bcX) ** 2 + (cy - bcY) ** 2);
+    if (dist > maxCornerPx) {
+      maxCornerPx = dist;
+      labelDirX = (cx - bcX) / dist;
+      labelDirY = (cy - bcY) / dist;
+    }
+  }
   const twoThetaCorner = Math.atan2(maxCornerPx * pixel_size, panel_distance_mm);
   const dCorner = wavelength / (2 * Math.sin(twoThetaCorner / 2));
 
@@ -311,14 +317,18 @@ function drawResolutionRings(
   const bcCanvasX = (bcX - pan.x) * zoom + halfCanvasW;
   const bcCanvasY = (bcY - pan.y) * zoom + halfCanvasH;
 
+  // Text alignment relative to the label direction
+  const labelTextAlign = labelDirX > 0.1 ? 'left' : labelDirX < -0.1 ? 'right' : 'center';
+  const labelTextBaseline = labelDirY > 0.1 ? 'top' : labelDirY < -0.1 ? 'bottom' : 'middle';
+
   ctx.save();
   ctx.strokeStyle = 'rgba(255, 60, 60, 0.85)';
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 4]);
   ctx.font = '11px sans-serif';
   ctx.fillStyle = 'rgba(255, 60, 60, 0.9)';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'bottom';
+  ctx.textAlign = labelTextAlign;
+  ctx.textBaseline = labelTextBaseline;
 
   for (const d of uniqueRings) {
     const sinTheta = wavelength / (2 * d);
@@ -330,7 +340,12 @@ function drawResolutionRings(
     ctx.arc(bcCanvasX, bcCanvasY, rCanvas, 0, 2 * Math.PI);
     ctx.stroke();
 
-    ctx.fillText(`${d}Å`, bcCanvasX + 3, bcCanvasY - rCanvas - 2);
+    const labelOffset = 4;
+    ctx.fillText(
+      `${d}Å`,
+      bcCanvasX + labelDirX * (rCanvas + labelOffset),
+      bcCanvasY + labelDirY * (rCanvas + labelOffset),
+    );
   }
 
   ctx.restore();
