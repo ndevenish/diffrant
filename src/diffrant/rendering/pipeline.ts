@@ -278,33 +278,30 @@ function drawResolutionRings(
   const [bcX, bcY] = beam_center;
   const [imgW, imgH] = panel_size_fast_slow;
 
-  const rToD = (rPx: number) => {
-    const twoTheta = Math.atan2(rPx * pixel_size, panel_distance_mm);
-    return wavelength / (2 * Math.sin(twoTheta / 2));
-  };
-
-  // d at the nearest perpendicular edge (inscribed circle)
-  const minEdgePx = Math.min(bcX, imgW - bcX, bcY, imgH - bcY);
-  const dPerp = rToD(minEdgePx);
-
-  // d at the farthest corner (circumscribed circle)
+  // d-spacing at the farthest corner
   const maxCornerPx = Math.max(
     Math.sqrt(bcX ** 2 + bcY ** 2),
     Math.sqrt((imgW - bcX) ** 2 + bcY ** 2),
     Math.sqrt(bcX ** 2 + (imgH - bcY) ** 2),
     Math.sqrt((imgW - bcX) ** 2 + (imgH - bcY) ** 2),
   );
-  const dCorner = rToD(maxCornerPx);
+  const twoThetaCorner = Math.atan2(maxCornerPx * pixel_size, panel_distance_mm);
+  const dCorner = wavelength / (2 * Math.sin(twoThetaCorner / 2));
 
-  // 4 rings inside the inscribed circle (d >= dPerp, 4 with smallest d)
-  const insidePerp = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dPerp);
-  const innerRings = insidePerp.slice(-4);
-
-  // Extra rings in the corner area (dCorner <= d < dPerp)
-  const cornerRings = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dCorner && d < dPerp);
-
-  const rings = [...cornerRings, ...innerRings];
-  if (rings.length === 0) return;
+  // Evenly divide d*² = 1/d² from 0 to 1/dCorner² into N steps,
+  // then snap each target to the nearest candidate d-spacing
+  const N = 5;
+  const dStarSqMax = 1 / (dCorner * dCorner);
+  const rings = Array.from({ length: N }, (_, i) => {
+    const targetDStarSq = ((i + 1) / N) * dStarSqMax;
+    const targetD = 1 / Math.sqrt(targetDStarSq);
+    return ALL_RESOLUTION_RINGS_ANGSTROM.reduce((best, d) =>
+      Math.abs(d - targetD) < Math.abs(best - targetD) ? d : best
+    );
+  });
+  // Deduplicate while preserving order
+  const uniqueRings = [...new Set(rings)];
+  if (uniqueRings.length === 0) return;
 
   const { pan, zoom } = viewState;
   const halfCanvasW = canvasWidth / 2;
@@ -321,7 +318,7 @@ function drawResolutionRings(
   ctx.textAlign = 'left';
   ctx.textBaseline = 'bottom';
 
-  for (const d of rings) {
+  for (const d of uniqueRings) {
     const sinTheta = wavelength / (2 * d);
     if (sinTheta >= 1) continue;
     const twoTheta = 2 * Math.asin(sinTheta);
