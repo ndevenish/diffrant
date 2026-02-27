@@ -1,4 +1,4 @@
-import type { RawImageData, ViewerState, ImageMetadata } from '../types';
+import type { RawImageData, ViewerState, ImageMetadata, ColormapName } from '../types';
 import type { ColormapTable } from './colormaps';
 import { getColormapTable } from './colormaps';
 
@@ -334,11 +334,19 @@ function drawResolutionRings(
   ctx.rect(imgLeft, imgTop, imgW * zoom, imgH * zoom);
   ctx.clip();
 
-  ctx.strokeStyle = 'rgba(255, 60, 60, 0.85)';
+  const ringColor: Record<ColormapName, string> = {
+    grayscale: 'rgba(255, 60, 60, 0.85)',
+    inverse:   'rgba(255, 60, 60, 0.85)',
+    heat:      'rgba(0, 210, 255, 0.9)',   // cyan — complement of red/orange/yellow
+    rainbow:   'rgba(255, 255, 255, 0.9)', // white — neutral against saturated hues
+  };
+  const color = ringColor[viewState.colormap];
+
+  ctx.strokeStyle = color;
   ctx.lineWidth = 1.5;
   ctx.setLineDash([6, 4]);
   ctx.font = '11px sans-serif';
-  ctx.fillStyle = 'rgba(255, 60, 60, 0.9)';
+  ctx.fillStyle = color;
   ctx.textAlign = labelTextAlign;
   ctx.textBaseline = labelTextBaseline;
 
