@@ -16,6 +16,7 @@ export interface ViewerState {
   colormap: ColormapName;
   downsampleMode: 'average' | 'max';
   showMask: boolean; // true = red overlay on masked pixels, false = white
+  showResolutionRings: boolean; // true = draw red dashed rings at 1–5 Å
 }
 
 export type ColormapName = 'grayscale' | 'inverse' | 'heat' | 'rainbow';
@@ -39,4 +40,5 @@ export interface CursorInfo {
   fast: number; // x pixel coordinate
   slow: number; // y pixel coordinate
   value: number;
+  resolution_angstrom?: number; // d-spacing resolution at this pixel
 }

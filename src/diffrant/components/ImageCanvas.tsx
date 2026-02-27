@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
 import type { RawImageData, ViewerState, ImageMetadata, CursorInfo } from '../types';
-import { buildLUT, renderRegion, getColormapTable } from '../rendering/pipeline';
+import { buildLUT, renderRegion, getColormapTable, pixelResolution } from '../rendering/pipeline';
 import './ImageCanvas.css';
 
 interface ImageCanvasProps {
@@ -35,6 +35,8 @@ export function ImageCanvas({
   onChangeRef.current = onViewerStateChange;
   const onCursorRef = useRef(onCursorChange);
   onCursorRef.current = onCursorChange;
+  const metadataRef = useRef(metadata);
+  metadataRef.current = metadata;
 
   // Sync from props (exposure/colormap changes from ControlPanel, etc.)
   // Skip during drag — liveState is authoritative while the user is interacting,
@@ -165,7 +167,8 @@ export function ImageCanvas({
         const iy = Math.floor(imgY);
         if (ix >= 0 && ix < imageData.width && iy >= 0 && iy < imageData.height) {
           const value = imageData.data[iy * imageData.width + ix];
-          onCursorRef.current({ fast: ix, slow: iy, value });
+          const res = pixelResolution(ix, iy, metadataRef.current);
+          onCursorRef.current({ fast: ix, slow: iy, value, resolution_angstrom: res ?? undefined });
         } else {
           onCursorRef.current(null);
         }

@@ -51,6 +51,16 @@ export const ControlPanel = memo(function ControlPanel({
         />
         Show mask
       </label>
+      <label className="control-panel-checkbox">
+        <input
+          type="checkbox"
+          checked={viewerState.showResolutionRings}
+          onChange={(e) =>
+            onViewerStateChange({ ...viewerState, showResolutionRings: e.target.checked })
+          }
+        />
+        Show resolution rings
+      </label>
       <div className="control-panel-section">
         <div className="control-panel-label">Pixel</div>
         {cursorInfo ? (
@@ -58,6 +68,9 @@ export const ControlPanel = memo(function ControlPanel({
             <span>fast: {cursorInfo.fast}</span>
             <span>slow: {cursorInfo.slow}</span>
             <span>value: {cursorInfo.value}</span>
+            {cursorInfo.resolution_angstrom !== undefined && (
+              <span>d: {cursorInfo.resolution_angstrom.toFixed(2)} Å</span>
+            )}
           </div>
         ) : (
           <div className="cursor-info-empty">—</div>
@@ -88,8 +101,10 @@ export const ControlPanel = memo(function ControlPanel({
     && prev.viewerState.colormap === next.viewerState.colormap
     && prev.viewerState.downsampleMode === next.viewerState.downsampleMode
     && prev.viewerState.showMask === next.viewerState.showMask
+    && prev.viewerState.showResolutionRings === next.viewerState.showResolutionRings
     && (prev.viewerState.zoom < 1) === (next.viewerState.zoom < 1)
     && prev.cursorInfo?.fast === next.cursorInfo?.fast
     && prev.cursorInfo?.slow === next.cursorInfo?.slow
-    && prev.cursorInfo?.value === next.cursorInfo?.value;
+    && prev.cursorInfo?.value === next.cursorInfo?.value
+    && prev.cursorInfo?.resolution_angstrom === next.cursorInfo?.resolution_angstrom;
 });

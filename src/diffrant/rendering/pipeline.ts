@@ -245,12 +245,83 @@ export function renderRegion(
   const armLen = Math.max(8, zoom * 0.5);
   ctx.strokeStyle = '#4a90d9';
   ctx.lineWidth = 2;
+  ctx.setLineDash([]);
   ctx.beginPath();
   ctx.moveTo(bcCanvasX - armLen, bcCanvasY);
   ctx.lineTo(bcCanvasX + armLen, bcCanvasY);
   ctx.moveTo(bcCanvasX, bcCanvasY - armLen);
   ctx.lineTo(bcCanvasX, bcCanvasY + armLen);
   ctx.stroke();
+
+  if (viewState.showResolutionRings) {
+    drawResolutionRings(ctx, canvasWidth, canvasHeight, metadata, viewState);
+  }
+}
+
+const RESOLUTION_RINGS_ANGSTROM = [1, 2, 3, 4, 5];
+
+function drawResolutionRings(
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  metadata: ImageMetadata,
+  viewState: ViewerState,
+): void {
+  const { beam_energy_kev, beam_center, panel_distance_mm, pixel_size } = metadata;
+  if (!beam_energy_kev) return;
+
+  const wavelength = 12.398419843 / beam_energy_kev; // Å
+  const { pan, zoom } = viewState;
+  const halfCanvasW = canvasWidth / 2;
+  const halfCanvasH = canvasHeight / 2;
+
+  const [bcX, bcY] = beam_center;
+  const bcCanvasX = (bcX - pan.x) * zoom + halfCanvasW;
+  const bcCanvasY = (bcY - pan.y) * zoom + halfCanvasH;
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255, 60, 60, 0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = 'rgba(255, 60, 60, 0.9)';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'bottom';
+
+  for (const d of RESOLUTION_RINGS_ANGSTROM) {
+    const sinTheta = wavelength / (2 * d);
+    if (sinTheta >= 1) continue; // not achievable at this energy
+    const twoTheta = 2 * Math.asin(sinTheta);
+    const rCanvas = (panel_distance_mm * Math.tan(twoTheta) / pixel_size) * zoom;
+
+    ctx.beginPath();
+    ctx.arc(bcCanvasX, bcCanvasY, rCanvas, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    ctx.fillText(`${d}Å`, bcCanvasX + 3, bcCanvasY - rCanvas - 2);
+  }
+
+  ctx.restore();
+}
+
+/**
+ * Calculate d-spacing resolution (Å) for a detector pixel at (fast, slow).
+ * Returns null if beam_energy_kev is not available or pixel is at the beam center.
+ */
+export function pixelResolution(fast: number, slow: number, metadata: ImageMetadata): number | null {
+  const { beam_energy_kev, beam_center, panel_distance_mm, pixel_size } = metadata;
+  if (!beam_energy_kev) return null;
+
+  const [bcX, bcY] = beam_center;
+  const drPx = Math.sqrt((fast - bcX) ** 2 + (slow - bcY) ** 2);
+  if (drPx === 0) return null;
+
+  const wavelength = 12.398419843 / beam_energy_kev; // Å
+  const twoTheta = Math.atan2(drPx * pixel_size, panel_distance_mm);
+  const sinTheta = Math.sin(twoTheta / 2);
+  if (sinTheta <= 0) return null;
+
+  return wavelength / (2 * sinTheta);
 }
 
 function depth2max(depth: 8 | 16 | 32): number {
