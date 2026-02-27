@@ -258,10 +258,10 @@ export function renderRegion(
   }
 }
 
-const ALL_RESOLUTION_RINGS_ANGSTROM = [
+// Fixed coarse list for d >= 4Å, then 0.2Å steps below that
+const ALL_RESOLUTION_RINGS_ANGSTROM: number[] = [
   50.0, 20.0, 10.0, 8.0, 6.0, 5.0, 4.0,
-  3.5, 3.0, 2.5, 2.0, 1.8, 1.5, 1.4, 1.2,
-  1.0, 0.9, 0.8,
+  ...Array.from({ length: 19 }, (_, i) => Math.round((3.8 - i * 0.2) * 10) / 10),
 ];
 
 function drawResolutionRings(
@@ -295,20 +295,24 @@ function drawResolutionRings(
   const dCorner = wavelength / (2 * Math.sin(twoThetaCorner / 2));
 
   // Evenly divide d*² = 1/d² from 0 to 1/dCorner² into N steps,
-  // snapping each target to the nearest candidate that lies within the corners
+  // greedily snapping each target to the nearest unused candidate within the corners
   const N = 5;
   const dStarSqMax = 1 / (dCorner * dCorner);
   const withinCorners = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dCorner);
   if (withinCorners.length === 0) return;
-  const rings = Array.from({ length: N }, (_, i) => {
+  const used = new Set<number>();
+  const uniqueRings: number[] = [];
+  for (let i = 0; i < N; i++) {
     const targetDStarSq = ((i + 1) / N) * dStarSqMax;
     const targetD = 1 / Math.sqrt(targetDStarSq);
-    return withinCorners.reduce((best, d) =>
-      Math.abs(d - targetD) < Math.abs(best - targetD) ? d : best
+    const available = withinCorners.filter(d => !used.has(d));
+    if (available.length === 0) break;
+    const best = available.reduce((b, d) =>
+      Math.abs(d - targetD) < Math.abs(b - targetD) ? d : b
     );
-  });
-  // Deduplicate while preserving order
-  const uniqueRings = [...new Set(rings)];
+    uniqueRings.push(best);
+    used.add(best);
+  }
   if (uniqueRings.length === 0) return;
 
   const { pan, zoom } = viewState;
