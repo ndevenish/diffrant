@@ -37,6 +37,12 @@
   color: #555;
 }
 
+.control-panel-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .control-panel-checkbox {
   display: flex;
   align-items: center;

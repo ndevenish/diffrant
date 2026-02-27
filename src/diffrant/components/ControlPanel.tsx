@@ -41,6 +41,7 @@ export const ControlPanel = memo(function ControlPanel({
         }
         visible={viewerState.zoom < 1}
       />
+      <div className="control-panel-checkboxes">
       <label className="control-panel-checkbox">
         <input
           type="checkbox"
@@ -51,16 +52,23 @@ export const ControlPanel = memo(function ControlPanel({
         />
         Show mask
       </label>
-      <label className="control-panel-checkbox">
+      <label
+        className="control-panel-checkbox"
+        title={metadata.beam_energy_kev === undefined ? 'No beam energy in metadata' : undefined}
+        style={metadata.beam_energy_kev === undefined ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+      >
         <input
           type="checkbox"
           checked={viewerState.showResolutionRings}
+          disabled={metadata.beam_energy_kev === undefined}
           onChange={(e) =>
             onViewerStateChange({ ...viewerState, showResolutionRings: e.target.checked })
           }
+          style={metadata.beam_energy_kev === undefined ? { cursor: 'not-allowed' } : undefined}
         />
         Show resolution rings
       </label>
+      </div>
       <div className="control-panel-section">
         <div className="control-panel-label">Pixel</div>
         {cursorInfo ? (
