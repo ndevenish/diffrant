@@ -1,5 +1,5 @@
 export interface ImageMetadata {
-  panel_distance: number;
+  panel_distance_mm: number;
   beam_center: [number, number];
   pixel_size: number;
   panel_size_fast_slow: [number, number]; // [width, height]

@@ -1,5 +1,5 @@
 {
-    "panel_distance": 300,
+    "panel_distance_mm": 300,
     "beam_center": [
         2000,
         2000
