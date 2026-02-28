@@ -1,4 +1,4 @@
-import type { RawImageData, ViewerState, ImageMetadata } from '../types';
+import type { RawImageData, ViewerState, ImageMetadata, ColormapName } from '../types';
 import type { ColormapTable } from './colormaps';
 import { getColormapTable } from './colormaps';
 
@@ -245,12 +245,150 @@ export function renderRegion(
   const armLen = Math.max(8, zoom * 0.5);
   ctx.strokeStyle = '#4a90d9';
   ctx.lineWidth = 2;
+  ctx.setLineDash([]);
   ctx.beginPath();
   ctx.moveTo(bcCanvasX - armLen, bcCanvasY);
   ctx.lineTo(bcCanvasX + armLen, bcCanvasY);
   ctx.moveTo(bcCanvasX, bcCanvasY - armLen);
   ctx.lineTo(bcCanvasX, bcCanvasY + armLen);
   ctx.stroke();
+
+  if (viewState.showResolutionRings) {
+    drawResolutionRings(ctx, canvasWidth, canvasHeight, metadata, viewState);
+  }
+}
+
+// Fixed coarse list for d >= 4Å, then 0.2Å steps below that
+const ALL_RESOLUTION_RINGS_ANGSTROM: number[] = [
+  50.0, 20.0, 10.0, 8.0, 6.0, 5.0, 4.0,
+  ...Array.from({ length: 19 }, (_, i) => Math.round((3.8 - i * 0.2) * 10) / 10),
+];
+
+function drawResolutionRings(
+  ctx: CanvasRenderingContext2D,
+  canvasWidth: number,
+  canvasHeight: number,
+  metadata: ImageMetadata,
+  viewState: ViewerState,
+): void {
+  const { beam_energy_kev, beam_center, panel_distance_mm, pixel_size, panel_size_fast_slow } = metadata;
+  if (!beam_energy_kev) return;
+
+  const wavelength = 12.398419843 / beam_energy_kev; // Å
+  const [bcX, bcY] = beam_center;
+  const [imgW, imgH] = panel_size_fast_slow;
+
+  // Find the farthest corner and its unit direction from the beam center
+  const corners: [number, number][] = [[0, 0], [imgW, 0], [0, imgH], [imgW, imgH]];
+  let maxCornerPx = 0;
+  let labelDirX = 1;
+  let labelDirY = -1;
+  for (const [cx, cy] of corners) {
+    const dist = Math.sqrt((cx - bcX) ** 2 + (cy - bcY) ** 2);
+    if (dist > maxCornerPx) {
+      maxCornerPx = dist;
+      labelDirX = (cx - bcX) / dist;
+      labelDirY = (cy - bcY) / dist;
+    }
+  }
+  const twoThetaCorner = Math.atan2(maxCornerPx * pixel_size, panel_distance_mm);
+  const dCorner = wavelength / (2 * Math.sin(twoThetaCorner / 2));
+
+  // Evenly divide d*² = 1/d² from 0 to 1/dCorner² into N steps,
+  // greedily snapping each target to the nearest unused candidate within the corners
+  const N = 5;
+  const dStarSqMax = 1 / (dCorner * dCorner);
+  const withinCorners = ALL_RESOLUTION_RINGS_ANGSTROM.filter(d => d >= dCorner);
+  if (withinCorners.length === 0) return;
+  const used = new Set<number>();
+  const uniqueRings: number[] = [];
+  for (let i = 0; i < N; i++) {
+    const targetDStarSq = ((i + 1) / N) * dStarSqMax;
+    const targetD = 1 / Math.sqrt(targetDStarSq);
+    const available = withinCorners.filter(d => !used.has(d));
+    if (available.length === 0) break;
+    const best = available.reduce((b, d) =>
+      Math.abs(d - targetD) < Math.abs(b - targetD) ? d : b
+    );
+    uniqueRings.push(best);
+    used.add(best);
+  }
+  if (uniqueRings.length === 0) return;
+
+  const { pan, zoom } = viewState;
+  const halfCanvasW = canvasWidth / 2;
+  const halfCanvasH = canvasHeight / 2;
+  const bcCanvasX = (bcX - pan.x) * zoom + halfCanvasW;
+  const bcCanvasY = (bcY - pan.y) * zoom + halfCanvasH;
+
+  // Text alignment relative to the label direction
+  const labelTextAlign = labelDirX > 0.1 ? 'left' : labelDirX < -0.1 ? 'right' : 'center';
+  const labelTextBaseline = labelDirY > 0.1 ? 'top' : labelDirY < -0.1 ? 'bottom' : 'middle';
+
+  ctx.save();
+
+  // Clip to the image rectangle so rings don't bleed into the background
+  const imgLeft = (0 - pan.x) * zoom + halfCanvasW;
+  const imgTop = (0 - pan.y) * zoom + halfCanvasH;
+  ctx.beginPath();
+  ctx.rect(imgLeft, imgTop, imgW * zoom, imgH * zoom);
+  ctx.clip();
+
+  const ringColor: Record<ColormapName, string> = {
+    grayscale: 'rgba(255, 60, 60, 0.85)',
+    inverse:   'rgba(255, 60, 60, 0.85)',
+    heat:      'rgba(0, 210, 255, 0.9)',   // cyan — complement of red/orange/yellow
+    rainbow:   'rgba(255, 255, 255, 0.9)', // white — neutral against saturated hues
+  };
+  const color = ringColor[viewState.colormap];
+
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([6, 4]);
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = color;
+  ctx.textAlign = labelTextAlign;
+  ctx.textBaseline = labelTextBaseline;
+
+  for (const d of uniqueRings) {
+    const sinTheta = wavelength / (2 * d);
+    if (sinTheta >= 1) continue;
+    const twoTheta = 2 * Math.asin(sinTheta);
+    const rCanvas = (panel_distance_mm * Math.tan(twoTheta) / pixel_size) * zoom;
+
+    ctx.beginPath();
+    ctx.arc(bcCanvasX, bcCanvasY, rCanvas, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    const labelOffset = 4;
+    ctx.fillText(
+      `${d}Å`,
+      bcCanvasX + labelDirX * (rCanvas + labelOffset),
+      bcCanvasY + labelDirY * (rCanvas + labelOffset),
+    );
+  }
+
+  ctx.restore();
+}
+
+/**
+ * Calculate d-spacing resolution (Å) for a detector pixel at (fast, slow).
+ * Returns null if beam_energy_kev is not available or pixel is at the beam center.
+ */
+export function pixelResolution(fast: number, slow: number, metadata: ImageMetadata): number | null {
+  const { beam_energy_kev, beam_center, panel_distance_mm, pixel_size } = metadata;
+  if (!beam_energy_kev) return null;
+
+  const [bcX, bcY] = beam_center;
+  const drPx = Math.sqrt((fast - bcX) ** 2 + (slow - bcY) ** 2);
+  if (drPx === 0) return null;
+
+  const wavelength = 12.398419843 / beam_energy_kev; // Å
+  const twoTheta = Math.atan2(drPx * pixel_size, panel_distance_mm);
+  const sinTheta = Math.sin(twoTheta / 2);
+  if (sinTheta <= 0) return null;
+
+  return wavelength / (2 * sinTheta);
 }
 
 function depth2max(depth: 8 | 16 | 32): number {

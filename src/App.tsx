@@ -11,6 +11,7 @@ const DEFAULT_STATE: ViewerState = {
   colormap: 'inverse',
   downsampleMode: 'max',
   showMask: false,
+  showResolutionRings: false,
 };
 
 function App() {

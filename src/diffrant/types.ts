@@ -1,10 +1,11 @@
 export interface ImageMetadata {
-  panel_distance: number;
+  panel_distance_mm: number;
   beam_center: [number, number];
   pixel_size: number;
   panel_size_fast_slow: [number, number]; // [width, height]
   image_depth: 8 | 16 | 32;
   trusted_range_max: number;
+  beam_energy_kev?: number;
 }
 
 export interface ViewerState {
@@ -15,9 +16,17 @@ export interface ViewerState {
   colormap: ColormapName;
   downsampleMode: 'average' | 'max';
   showMask: boolean; // true = red overlay on masked pixels, false = white
+  showResolutionRings: boolean; // true = draw red dashed rings at 1–5 Å
 }
 
 export type ColormapName = 'grayscale' | 'inverse' | 'heat' | 'rainbow';
+
+export interface DiffrantViewerProps {
+  imageData: RawImageData;
+  metadata: ImageMetadata;
+  viewerState: ViewerState;
+  onViewerStateChange: (state: ViewerState) => void;
+}
 
 export interface DiffrantProps {
   metadataUrl: string;
@@ -38,4 +47,5 @@ export interface CursorInfo {
   fast: number; // x pixel coordinate
   slow: number; // y pixel coordinate
   value: number;
+  resolution_angstrom?: number; // d-spacing resolution at this pixel
 }

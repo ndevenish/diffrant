@@ -1,8 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import type { DiffrantProps, CursorInfo } from './types';
+import { useEffect, useRef } from 'react';
+import type { DiffrantProps } from './types';
 import { useImageLoader } from './hooks/useImageLoader';
-import { ImageCanvas } from './components/ImageCanvas';
-import { ControlPanel } from './components/ControlPanel';
+import { DiffrantViewer } from './DiffrantViewer';
 import './Diffrant.css';
 
 export function Diffrant({
@@ -12,7 +11,6 @@ export function Diffrant({
   onViewerStateChange,
 }: DiffrantProps) {
   const { metadata, imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
-  const [cursorInfo, setCursorInfo] = useState<CursorInfo | null>(null);
   const autoExposureData = useRef<unknown>(null);
 
   // Auto-set exposureMax to 90th percentile on first load
@@ -53,9 +51,6 @@ export function Diffrant({
     onViewerStateChange({ ...viewerState, exposureMax });
   }, [imageData, metadata, viewerState, onViewerStateChange]);
 
-  const handleCursorChange = useCallback((info: CursorInfo | null) => {
-    setCursorInfo(info);
-  }, []);
 
   if (loading) {
     return (
@@ -82,26 +77,11 @@ export function Diffrant({
   }
 
   return (
-    <div className="diffrant-container">
-      <div className="diffrant-left" />
-      <div className="diffrant-center">
-        <ImageCanvas
-          imageData={imageData}
-          metadata={metadata}
-          viewerState={viewerState}
-          onViewerStateChange={onViewerStateChange}
-          onCursorChange={handleCursorChange}
-        />
-      </div>
-      <div className="diffrant-right">
-        <ControlPanel
-          imageData={imageData}
-          metadata={metadata}
-          viewerState={viewerState}
-          onViewerStateChange={onViewerStateChange}
-          cursorInfo={cursorInfo}
-        />
-      </div>
-    </div>
+    <DiffrantViewer
+      imageData={imageData}
+      metadata={metadata}
+      viewerState={viewerState}
+      onViewerStateChange={onViewerStateChange}
+    />
   );
 }

@@ -40,6 +40,7 @@ export const ControlPanel = memo(function ControlPanel({
           onViewerStateChange({ ...viewerState, downsampleMode })
         }
       />
+      <div className="control-panel-checkboxes">
       <label className="control-panel-checkbox">
         <input
           type="checkbox"
@@ -50,6 +51,23 @@ export const ControlPanel = memo(function ControlPanel({
         />
         Show mask
       </label>
+      <label
+        className="control-panel-checkbox"
+        title={metadata.beam_energy_kev === undefined ? 'No beam energy in metadata' : undefined}
+        style={metadata.beam_energy_kev === undefined ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+      >
+        <input
+          type="checkbox"
+          checked={viewerState.showResolutionRings}
+          disabled={metadata.beam_energy_kev === undefined}
+          onChange={(e) =>
+            onViewerStateChange({ ...viewerState, showResolutionRings: e.target.checked })
+          }
+          style={metadata.beam_energy_kev === undefined ? { cursor: 'not-allowed' } : undefined}
+        />
+        Show resolution rings
+      </label>
+      </div>
       <div className="control-panel-section">
         <div className="control-panel-label">Pixel</div>
         {cursorInfo ? (
@@ -57,6 +75,9 @@ export const ControlPanel = memo(function ControlPanel({
             <span>fast: {cursorInfo.fast}</span>
             <span>slow: {cursorInfo.slow}</span>
             <span>value: {cursorInfo.value}</span>
+            {cursorInfo.resolution_angstrom !== undefined && (
+              <span>d: {cursorInfo.resolution_angstrom.toFixed(2)} Å</span>
+            )}
           </div>
         ) : (
           <div className="cursor-info-empty">—</div>
@@ -70,6 +91,14 @@ export const ControlPanel = memo(function ControlPanel({
         <div style={{ fontSize: 12, color: '#ccc' }}>
           Zoom: {(viewerState.zoom * 100).toFixed(1)}%
         </div>
+        <div style={{ fontSize: 12, color: '#ccc' }}>
+          Distance: {metadata.panel_distance_mm.toFixed(1)} mm
+        </div>
+        {metadata.beam_energy_kev !== undefined && (
+          <div style={{ fontSize: 12, color: '#ccc' }}>
+            Energy: {metadata.beam_energy_kev.toFixed(3)} keV
+          </div>
+        )}
       </div>
     </div>
   );
@@ -82,8 +111,10 @@ export const ControlPanel = memo(function ControlPanel({
     && prev.viewerState.colormap === next.viewerState.colormap
     && prev.viewerState.downsampleMode === next.viewerState.downsampleMode
     && prev.viewerState.showMask === next.viewerState.showMask
+    && prev.viewerState.showResolutionRings === next.viewerState.showResolutionRings
     && prev.viewerState.zoom === next.viewerState.zoom
     && prev.cursorInfo?.fast === next.cursorInfo?.fast
     && prev.cursorInfo?.slow === next.cursorInfo?.slow
-    && prev.cursorInfo?.value === next.cursorInfo?.value;
+    && prev.cursorInfo?.value === next.cursorInfo?.value
+    && prev.cursorInfo?.resolution_angstrom === next.cursorInfo?.resolution_angstrom;
 });
