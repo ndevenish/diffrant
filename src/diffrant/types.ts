@@ -21,6 +21,13 @@ export interface ViewerState {
 
 export type ColormapName = 'grayscale' | 'inverse' | 'heat' | 'rainbow';
 
+export interface DiffrantViewerProps {
+  imageData: RawImageData;
+  metadata: ImageMetadata;
+  viewerState: ViewerState;
+  onViewerStateChange: (state: ViewerState) => void;
+}
+
 export interface DiffrantProps {
   metadataUrl: string;
   imageUrl: string;
