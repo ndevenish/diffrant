@@ -9,14 +9,18 @@ export function Diffrant({
   imageUrl,
   viewerState,
   onViewerStateChange,
+  autoExposureTrigger = 0,
 }: DiffrantProps) {
   const { metadata, imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
-  const autoExposureData = useRef<unknown>(null);
+  const processedTrigger = useRef(-1);
 
-  // Auto-set exposureMax to 90th percentile on first load
+  // Auto-set exposureMax to 90th percentile when triggered.
+  // Runs when autoExposureTrigger increments; if imageData isn't ready yet,
+  // waits until it arrives (the effect re-runs when imageData changes too).
   useEffect(() => {
-    if (!imageData || !metadata || autoExposureData.current === imageData.data) return;
-    autoExposureData.current = imageData.data;
+    if (!imageData || !metadata) return;
+    if (autoExposureTrigger <= processedTrigger.current) return;
+    processedTrigger.current = autoExposureTrigger;
 
     const trustedMax = metadata.trusted_range_max;
     const data = imageData.data;
@@ -49,7 +53,7 @@ export function Diffrant({
 
     const exposureMax = Math.max(p90, 2);
     onViewerStateChange({ ...viewerState, exposureMax });
-  }, [imageData, metadata, viewerState, onViewerStateChange]);
+  }, [imageData, metadata, autoExposureTrigger, viewerState, onViewerStateChange]);
 
 
   if (loading) {

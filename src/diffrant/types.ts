@@ -34,6 +34,8 @@ export interface DiffrantProps {
   imageNumber: number;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
+  /** Increment to trigger an auto-exposure calculation on the current image. */
+  autoExposureTrigger?: number;
 }
 
 export interface RawImageData {
