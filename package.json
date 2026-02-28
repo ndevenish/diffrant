@@ -5,11 +5,11 @@
   "type": "module",
   "main": "./dist/diffrant.js",
   "module": "./dist/diffrant.js",
-  "types": "./dist/diffrant.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/diffrant.js",
-      "types": "./dist/diffrant.d.ts"
+      "types": "./dist/index.d.ts"
     },
     "./style.css": "./dist/style.css"
   },
