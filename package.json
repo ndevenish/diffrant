@@ -11,7 +11,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/diffrant.js"
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/diffrant.css"
   },
   "files": [
     "dist"

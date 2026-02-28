@@ -104,7 +104,9 @@ export function ImageCanvas({
         const w = Math.floor(width);
         const h = Math.floor(height);
         if (w > 0 && h > 0) {
-          setCanvasSize({ width: w, height: h });
+          setCanvasSize(prev =>
+            prev.width === w && prev.height === h ? prev : { width: w, height: h }
+          );
         }
       }
     });

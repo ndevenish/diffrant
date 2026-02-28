@@ -1,30 +1,34 @@
 .diffrant-container {
-  display: grid;
-  grid-template-columns: 0px 1fr auto;
-  width: 100%;
-  height: 100%;
+  display: flex;
+  flex-direction: row;
+  position: absolute;
+  inset: 0;
   background: #1a1a1a;
   color: #ccc;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .diffrant-left {
+  width: 0;
+  flex-shrink: 0;
   /* Reserved for future use */
 }
 
 .diffrant-center {
+  flex: 1;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
 }
 
 .diffrant-right {
+  flex-shrink: 0;
   /* ControlPanel styles handle the rest */
 }
 
 .diffrant-loading,
 .diffrant-error {
-  grid-column: 1 / -1;
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
