@@ -13,6 +13,11 @@ export function Diffrant({
 }: DiffrantProps) {
   const { metadata, imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
   const processedTrigger = useRef(-1);
+  // Ref so the effect reads the latest viewerState without re-running on every change.
+  const viewerStateRef = useRef(viewerState);
+  viewerStateRef.current = viewerState;
+  const onViewerStateChangeRef = useRef(onViewerStateChange);
+  onViewerStateChangeRef.current = onViewerStateChange;
 
   // Auto-set exposureMax to 90th percentile when triggered.
   // Runs when autoExposureTrigger increments; if imageData isn't ready yet,
@@ -52,8 +57,8 @@ export function Diffrant({
     }
 
     const exposureMax = Math.max(p90, 2);
-    onViewerStateChange({ ...viewerState, exposureMax });
-  }, [imageData, metadata, autoExposureTrigger, viewerState, onViewerStateChange]);
+    onViewerStateChangeRef.current({ ...viewerStateRef.current, exposureMax });
+  }, [imageData, metadata, autoExposureTrigger]);
 
 
   if (loading) {
