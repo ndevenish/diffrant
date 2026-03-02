@@ -8,4 +8,6 @@ export type {
   RawImageData,
   ColormapName,
   CursorInfo,
+  SeriesState,
+  StackMode,
 } from './types';

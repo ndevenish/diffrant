@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Diffrant } from './diffrant';
-import type { ViewerState } from './diffrant';
+import type { ViewerState, SeriesState } from './diffrant';
 import './App.css';
 
 const DEFAULT_STATE: ViewerState = {
@@ -14,21 +14,39 @@ const DEFAULT_STATE: ViewerState = {
   showResolutionRings: false,
 };
 
+const DEFAULT_SERIES: SeriesState = {
+  currentIndex: 0,
+  stackCount: 1,
+  stackMode: 'sum',
+  playing: false,
+  playFps: 5,
+  totalFrames: 3,
+};
+
+const imageUrlFactory = (i: number) =>
+  `/data/series/frame_${String(i + 1).padStart(3, '0')}.png`;
+
 function App() {
   const [viewerState, setViewerState] = useState<ViewerState>(DEFAULT_STATE);
+  const [seriesState, setSeriesState] = useState<SeriesState>(DEFAULT_SERIES);
 
   const handleStateChange = useCallback((state: ViewerState) => {
     setViewerState(state);
   }, []);
 
+  const handleSeriesChange = useCallback((state: SeriesState) => {
+    setSeriesState(state);
+  }, []);
+
   return (
     <div className="app">
       <Diffrant
-        metadataUrl="/data/se_thau_10_1_00001.json"
-        imageUrl="/data/se_thau_10_1_00001.png"
-        imageNumber={1}
+        metadataUrl="/data/series/metadata.json"
+        imageUrlFactory={imageUrlFactory}
         viewerState={viewerState}
         onViewerStateChange={handleStateChange}
+        seriesState={seriesState}
+        onSeriesStateChange={handleSeriesChange}
       />
     </div>
   );

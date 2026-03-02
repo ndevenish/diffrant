@@ -1,27 +1,49 @@
-import { useEffect, useRef } from 'react';
-import type { DiffrantProps } from './types';
+import { useEffect, useRef, useCallback } from 'react';
+import type { DiffrantProps, SeriesState } from './types';
 import { useImageLoader } from './hooks/useImageLoader';
+import { useSeriesLoader } from './hooks/useSeriesLoader';
 import { DiffrantViewer } from './DiffrantViewer';
 import './Diffrant.css';
+
+const NOOP_URL_FACTORY = () => '';
+const DEFAULT_SERIES: SeriesState = {
+  currentIndex: 0,
+  stackCount: 1,
+  stackMode: 'sum',
+  playing: false,
+  playFps: 5,
+};
 
 export function Diffrant({
   metadataUrl,
   imageUrl,
+  imageUrlFactory,
   viewerState,
   onViewerStateChange,
+  seriesState,
+  onSeriesStateChange,
   autoExposureTrigger = 0,
 }: DiffrantProps) {
-  const { metadata, imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
+  const isSeries = imageUrlFactory != null && seriesState != null && onSeriesStateChange != null;
+  const activeSeries = seriesState ?? DEFAULT_SERIES;
+
+  // Both hooks always called (rules of hooks)
+  const singleLoader = useImageLoader(metadataUrl, imageUrl ?? '');
+  const seriesLoader = useSeriesLoader(
+    isSeries ? metadataUrl : '',
+    isSeries ? imageUrlFactory : NOOP_URL_FACTORY,
+    activeSeries,
+  );
+
+  const { metadata, imageData, loading, error } = isSeries ? seriesLoader : singleLoader;
+
+  // --- Auto-exposure ---
   const processedTrigger = useRef(-1);
-  // Ref so the effect reads the latest viewerState without re-running on every change.
   const viewerStateRef = useRef(viewerState);
   viewerStateRef.current = viewerState;
   const onViewerStateChangeRef = useRef(onViewerStateChange);
   onViewerStateChangeRef.current = onViewerStateChange;
 
-  // Auto-set exposureMax to 90th percentile when triggered.
-  // Runs when autoExposureTrigger increments; if imageData isn't ready yet,
-  // waits until it arrives (the effect re-runs when imageData changes too).
   useEffect(() => {
     if (!imageData || !metadata) return;
     if (autoExposureTrigger <= processedTrigger.current) return;
@@ -31,7 +53,6 @@ export function Diffrant({
     const data = imageData.data;
     const len = data.length;
 
-    // Histogram-based percentile (works for integer data up to 65535)
     const histSize = imageData.depth <= 16 ? (1 << imageData.depth) : 65536;
     const hist = new Uint32Array(histSize);
     let count = 0;
@@ -60,6 +81,31 @@ export function Diffrant({
     onViewerStateChangeRef.current({ ...viewerStateRef.current, exposureMax });
   }, [imageData, metadata, autoExposureTrigger]);
 
+  // --- Play timer ---
+  const seriesStateRef = useRef(activeSeries);
+  seriesStateRef.current = activeSeries;
+  const onSeriesStateChangeRef = useRef(onSeriesStateChange);
+  onSeriesStateChangeRef.current = onSeriesStateChange;
+
+  // Stable callback for advancing frames — avoids recreating the interval
+  const advanceFrame = useCallback(() => {
+    const s = seriesStateRef.current;
+    const cb = onSeriesStateChangeRef.current;
+    if (!cb) return;
+    const next = s.currentIndex + s.stackCount;
+    if (s.totalFrames !== undefined && next + s.stackCount > s.totalFrames) {
+      // Reached the end — stop playing
+      cb({ ...s, playing: false });
+    } else {
+      cb({ ...s, currentIndex: next });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isSeries || !activeSeries.playing) return;
+    const interval = setInterval(advanceFrame, 1000 / activeSeries.playFps);
+    return () => clearInterval(interval);
+  }, [isSeries, activeSeries.playing, activeSeries.playFps, advanceFrame]);
 
   if (loading) {
     return (
@@ -91,6 +137,8 @@ export function Diffrant({
       metadata={metadata}
       viewerState={viewerState}
       onViewerStateChange={onViewerStateChange}
+      seriesState={isSeries ? seriesState : undefined}
+      onSeriesStateChange={isSeries ? onSeriesStateChange : undefined}
     />
   );
 }

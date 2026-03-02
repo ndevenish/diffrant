@@ -19,6 +19,7 @@ export function useImageLoader(
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!metadataUrl || !imageUrl) return;
     let cancelled = false;
     setLoading(true);
     setError(null);

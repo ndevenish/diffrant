@@ -26,14 +26,18 @@ export interface DiffrantViewerProps {
   metadata: ImageMetadata;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
+  seriesState?: SeriesState;
+  onSeriesStateChange?: (state: SeriesState) => void;
 }
 
 export interface DiffrantProps {
   metadataUrl: string;
-  imageUrl: string;
-  imageNumber: number;
+  imageUrl?: string;
+  imageUrlFactory?: (index: number) => string;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
+  seriesState?: SeriesState;
+  onSeriesStateChange?: (state: SeriesState) => void;
   /** Increment to trigger an auto-exposure calculation on the current image. */
   autoExposureTrigger?: number;
 }
@@ -50,4 +54,15 @@ export interface CursorInfo {
   slow: number; // y pixel coordinate
   value: number;
   resolution_angstrom?: number; // d-spacing resolution at this pixel
+}
+
+export type StackMode = 'sum' | 'average';
+
+export interface SeriesState {
+  currentIndex: number;       // first frame of the stack window
+  stackCount: number;         // frames to combine (1 = no stacking)
+  stackMode: StackMode;
+  playing: boolean;
+  playFps: number;            // frames per second during playback
+  totalFrames?: number;       // undefined = unknown/infinite
 }
