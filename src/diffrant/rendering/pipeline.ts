@@ -1,4 +1,4 @@
-import type { RawImageData, ViewerState, ImageMetadata, ColormapName } from '../types';
+import type { ImageData, ViewerState, ImageMetadata, ColormapName } from '../types';
 import type { ColormapTable } from './colormaps';
 import { getColormapTable } from './colormaps';
 
@@ -45,7 +45,7 @@ export function renderRegion(
   ctx: CanvasRenderingContext2D,
   canvasWidth: number,
   canvasHeight: number,
-  imageData: RawImageData,
+  imageData: ImageData,
   viewState: ViewerState,
   metadata: ImageMetadata,
   lut: Uint8Array,
@@ -402,7 +402,7 @@ function depth2max(depth: 8 | 16 | 32): number {
  * Returns bin counts (log-scale ready) and the bin edges.
  */
 export function computeHistogram(
-  imageData: RawImageData,
+  imageData: ImageData,
   metadata: ImageMetadata,
   numBins: number = 512,
 ): { counts: Float64Array; binEdges: number[]; maxRaw: number } {

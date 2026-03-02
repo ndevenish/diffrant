@@ -1,11 +1,10 @@
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
-import type { RawImageData, ImageMetadata, ViewerState } from '../types';
+import type { ImageData, ImageMetadata, ViewerState } from '../types';
 import { computeHistogram } from '../rendering/pipeline';
 import './Histogram.css';
 
 interface HistogramProps {
-  imageData: RawImageData;
-  metadata: ImageMetadata;
+  imageData: ImageData;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
 }
@@ -17,7 +16,6 @@ const HANDLE_HIT = 10; // hit target for handles
 
 export function Histogram({
   imageData,
-  metadata,
   viewerState,
   onViewerStateChange,
 }: HistogramProps) {
@@ -26,8 +24,8 @@ export function Histogram({
   const dragStartRef = useRef({ x: 0, minVal: 0, maxVal: 0 });
 
   const histogram = useMemo(
-    () => computeHistogram(imageData, metadata, HIST_WIDTH),
-    [imageData, metadata],
+    () => computeHistogram(imageData, imageData as unknown as ImageMetadata, HIST_WIDTH),
+    [imageData],
   );
 
   const { maxRaw } = histogram;

@@ -6,7 +6,6 @@ import './Diffrant.css';
 
 export function DiffrantViewer({
   imageData,
-  metadata,
   viewerState,
   onViewerStateChange,
 }: DiffrantViewerProps) {
@@ -22,7 +21,6 @@ export function DiffrantViewer({
       <div className="diffrant-center">
         <ImageCanvas
           imageData={imageData}
-          metadata={metadata}
           viewerState={viewerState}
           onViewerStateChange={onViewerStateChange}
           onCursorChange={handleCursorChange}
@@ -31,7 +29,6 @@ export function DiffrantViewer({
       <div className="diffrant-right">
         <ControlPanel
           imageData={imageData}
-          metadata={metadata}
           viewerState={viewerState}
           onViewerStateChange={onViewerStateChange}
           cursorInfo={cursorInfo}

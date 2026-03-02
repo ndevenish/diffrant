@@ -8,6 +8,8 @@ export interface ImageMetadata {
   beam_energy_kev?: number;
 }
 
+export interface ImageData extends RawImageData, Omit<ImageMetadata, 'image_depth'> {}
+
 export interface ViewerState {
   pan: { x: number; y: number }; // image coords at canvas center
   zoom: number; // canvas pixels per image pixel (1 = 1:1)
@@ -22,8 +24,7 @@ export interface ViewerState {
 export type ColormapName = 'grayscale' | 'inverse' | 'heat' | 'rainbow';
 
 export interface DiffrantViewerProps {
-  imageData: RawImageData;
-  metadata: ImageMetadata;
+  imageData: ImageData;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
 }

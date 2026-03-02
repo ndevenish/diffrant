@@ -11,7 +11,7 @@ export function Diffrant({
   onViewerStateChange,
   autoExposureTrigger = 0,
 }: DiffrantProps) {
-  const { metadata, imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
+  const { imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
   const processedTrigger = useRef(-1);
   // Ref so the effect reads the latest viewerState without re-running on every change.
   const viewerStateRef = useRef(viewerState);
@@ -23,11 +23,11 @@ export function Diffrant({
   // Runs when autoExposureTrigger increments; if imageData isn't ready yet,
   // waits until it arrives (the effect re-runs when imageData changes too).
   useEffect(() => {
-    if (!imageData || !metadata) return;
+    if (!imageData) return;
     if (autoExposureTrigger <= processedTrigger.current) return;
     processedTrigger.current = autoExposureTrigger;
 
-    const trustedMax = metadata.trusted_range_max;
+    const trustedMax = imageData.trusted_range_max;
     const data = imageData.data;
     const len = data.length;
 
@@ -58,7 +58,7 @@ export function Diffrant({
 
     const exposureMax = Math.max(p90, 2);
     onViewerStateChangeRef.current({ ...viewerStateRef.current, exposureMax });
-  }, [imageData, metadata, autoExposureTrigger]);
+  }, [imageData, autoExposureTrigger]);
 
 
   if (loading) {
@@ -77,7 +77,7 @@ export function Diffrant({
     );
   }
 
-  if (!metadata || !imageData) {
+  if (!imageData) {
     return (
       <div className="diffrant-container">
         <div className="diffrant-loading">No data</div>
@@ -88,7 +88,6 @@ export function Diffrant({
   return (
     <DiffrantViewer
       imageData={imageData}
-      metadata={metadata}
       viewerState={viewerState}
       onViewerStateChange={onViewerStateChange}
     />

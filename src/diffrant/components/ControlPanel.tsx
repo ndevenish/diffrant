@@ -1,13 +1,12 @@
 import { memo } from 'react';
-import type { RawImageData, ImageMetadata, ViewerState, ColormapName, CursorInfo } from '../types';
+import type { ImageData, ViewerState, ColormapName, CursorInfo } from '../types';
 import { Histogram } from './Histogram';
 import { ColormapSelector } from './ColormapSelector';
 import { DownsampleSelector } from './DownsampleSelector';
 import './ControlPanel.css';
 
 interface ControlPanelProps {
-  imageData: RawImageData;
-  metadata: ImageMetadata;
+  imageData: ImageData;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
   cursorInfo: CursorInfo | null;
@@ -15,7 +14,6 @@ interface ControlPanelProps {
 
 export const ControlPanel = memo(function ControlPanel({
   imageData,
-  metadata,
   viewerState,
   onViewerStateChange,
   cursorInfo,
@@ -24,7 +22,6 @@ export const ControlPanel = memo(function ControlPanel({
     <div className="control-panel">
       <Histogram
         imageData={imageData}
-        metadata={metadata}
         viewerState={viewerState}
         onViewerStateChange={onViewerStateChange}
       />
@@ -53,17 +50,17 @@ export const ControlPanel = memo(function ControlPanel({
       </label>
       <label
         className="control-panel-checkbox"
-        title={metadata.beam_energy_kev === undefined ? 'No beam energy in metadata' : undefined}
-        style={metadata.beam_energy_kev === undefined ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+        title={imageData.beam_energy_kev === undefined ? 'No beam energy in metadata' : undefined}
+        style={imageData.beam_energy_kev === undefined ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
       >
         <input
           type="checkbox"
           checked={viewerState.showResolutionRings}
-          disabled={metadata.beam_energy_kev === undefined}
+          disabled={imageData.beam_energy_kev === undefined}
           onChange={(e) =>
             onViewerStateChange({ ...viewerState, showResolutionRings: e.target.checked })
           }
-          style={metadata.beam_energy_kev === undefined ? { cursor: 'not-allowed' } : undefined}
+          style={imageData.beam_energy_kev === undefined ? { cursor: 'not-allowed' } : undefined}
         />
         Show resolution rings
       </label>
@@ -77,11 +74,11 @@ export const ControlPanel = memo(function ControlPanel({
           Zoom: {(viewerState.zoom * 100).toFixed(1)}%
         </div>
         <div style={{ fontSize: 12, color: '#ccc' }}>
-          Distance: {metadata.panel_distance_mm.toFixed(1)} mm
+          Distance: {imageData.panel_distance_mm.toFixed(1)} mm
         </div>
-        {metadata.beam_energy_kev !== undefined && (
+        {imageData.beam_energy_kev !== undefined && (
           <div style={{ fontSize: 12, color: '#ccc' }}>
-            Energy: {metadata.beam_energy_kev.toFixed(3)} keV
+            Energy: {imageData.beam_energy_kev.toFixed(3)} keV
           </div>
         )}
       </div>
@@ -105,7 +102,6 @@ export const ControlPanel = memo(function ControlPanel({
 }, (prev, next) => {
   // Skip re-render when only pan/zoom changed (the hot path during interaction)
   return prev.imageData === next.imageData
-    && prev.metadata === next.metadata
     && prev.viewerState.exposureMin === next.viewerState.exposureMin
     && prev.viewerState.exposureMax === next.viewerState.exposureMax
     && prev.viewerState.colormap === next.viewerState.colormap

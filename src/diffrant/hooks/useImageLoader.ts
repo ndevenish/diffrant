@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import type { ImageMetadata, RawImageData } from '../types';
+import type { ImageData } from '../types';
 import { getLoader } from '../loaders';
 
 interface UseImageLoaderResult {
-  metadata: ImageMetadata | null;
-  imageData: RawImageData | null;
+  imageData: ImageData | null;
   loading: boolean;
   error: string | null;
 }
@@ -13,8 +12,7 @@ export function useImageLoader(
   metadataUrl: string,
   imageUrl: string,
 ): UseImageLoaderResult {
-  const [metadata, setMetadata] = useState<ImageMetadata | null>(null);
-  const [imageData, setImageData] = useState<RawImageData | null>(null);
+  const [imageData, setImageData] = useState<ImageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +26,7 @@ export function useImageLoader(
         // Fetch metadata first (needed by raw loader to know dimensions)
         const metaResponse = await fetch(metadataUrl);
         if (!metaResponse.ok) throw new Error(`Failed to fetch metadata: ${metaResponse.status}`);
-        const meta: ImageMetadata = await metaResponse.json();
+        const meta = await metaResponse.json();
 
         if (cancelled) return;
 
@@ -56,8 +54,8 @@ export function useImageLoader(
 
         if (cancelled) return;
 
-        setMetadata(meta);
-        setImageData(raw);
+        const combined: ImageData = { ...raw, ...meta };
+        setImageData(combined);
         setLoading(false);
       } catch (err) {
         if (!cancelled) {
@@ -71,5 +69,5 @@ export function useImageLoader(
     return () => { cancelled = true; };
   }, [metadataUrl, imageUrl]);
 
-  return { metadata, imageData, loading, error };
+  return { imageData, loading, error };
 }

@@ -1,11 +1,10 @@
 import { useRef, useEffect, useCallback, useState } from 'react';
-import type { RawImageData, ViewerState, ImageMetadata, CursorInfo } from '../types';
+import type { ImageData, ViewerState, ImageMetadata, CursorInfo } from '../types';
 import { buildLUT, renderRegion, getColormapTable, pixelResolution } from '../rendering/pipeline';
 import './ImageCanvas.css';
 
 interface ImageCanvasProps {
-  imageData: RawImageData;
-  metadata: ImageMetadata;
+  imageData: ImageData;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
   onCursorChange: (info: CursorInfo | null) => void;
@@ -13,7 +12,6 @@ interface ImageCanvasProps {
 
 export function ImageCanvas({
   imageData,
-  metadata,
   viewerState,
   onViewerStateChange,
   onCursorChange,
@@ -46,8 +44,6 @@ export function ImageCanvas({
   }, []);
   const onCursorRef = useRef(onCursorChange);
   onCursorRef.current = onCursorChange;
-  const metadataRef = useRef(metadata);
-  metadataRef.current = metadata;
 
   // Sync from props (exposure/colormap changes from ControlPanel, etc.)
   // Only apply when the incoming props differ from what we last sent — this
@@ -84,7 +80,7 @@ export function ImageCanvas({
       const vs = liveState.current;
       const lut = buildLUT(imageData.depth, vs.exposureMin, vs.exposureMax);
       const colormap = getColormapTable(vs.colormap);
-      renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, vs, metadata, lut, colormap);
+       renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, vs, imageData as unknown as ImageMetadata, lut, colormap);
 
       // Loupe overlay
       const loupeCanvas = loupeCanvasRef.current;
@@ -109,13 +105,13 @@ export function ImageCanvas({
             pan: { x: lp.imgX, y: lp.imgY },
             zoom: loupeZoom,
           };
-          renderRegion(loupeCtx, side, side, imageData, loupeVS, metadata, lut, colormap);
+          renderRegion(loupeCtx, side, side, imageData, loupeVS, imageData as unknown as ImageMetadata, lut, colormap);
         }
       } else if (loupeCanvas) {
         loupeCanvas.style.display = 'none';
       }
     });
-  }, [canvasSize, imageData, metadata]);
+  }, [canvasSize, imageData]);
 
   // Re-render when props change (exposure, colormap, canvas resize, etc.)
   useEffect(() => {
@@ -225,7 +221,7 @@ export function ImageCanvas({
         const iy = Math.floor(imgY);
         if (ix >= 0 && ix < imageData.width && iy >= 0 && iy < imageData.height) {
           const value = imageData.data[iy * imageData.width + ix];
-          const res = pixelResolution(ix, iy, metadataRef.current);
+          const res = pixelResolution(ix, iy, imageData as unknown as ImageMetadata);
           onCursorRef.current({ fast: ix, slow: iy, value, resolution_angstrom: res ?? undefined });
         } else {
           onCursorRef.current(null);

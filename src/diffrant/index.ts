@@ -5,6 +5,7 @@ export type {
   DiffrantViewerProps,
   ViewerState,
   ImageMetadata,
+  ImageData,
   RawImageData,
   ColormapName,
   CursorInfo,
