@@ -69,21 +69,6 @@ export const ControlPanel = memo(function ControlPanel({
       </label>
       </div>
       <div className="control-panel-section">
-        <div className="control-panel-label">Pixel</div>
-        {cursorInfo ? (
-          <div className="cursor-info-panel">
-            <span>fast: {cursorInfo.fast}</span>
-            <span>slow: {cursorInfo.slow}</span>
-            <span>value: {cursorInfo.value}</span>
-            {cursorInfo.resolution_angstrom !== undefined && (
-              <span>d: {cursorInfo.resolution_angstrom.toFixed(2)} Å</span>
-            )}
-          </div>
-        ) : (
-          <div className="cursor-info-empty">—</div>
-        )}
-      </div>
-      <div className="control-panel-section">
         <div className="control-panel-label">Image</div>
         <div style={{ fontSize: 12, color: '#ccc' }}>
           {imageData.width} x {imageData.height} ({imageData.depth}-bit)
@@ -98,6 +83,21 @@ export const ControlPanel = memo(function ControlPanel({
           <div style={{ fontSize: 12, color: '#ccc' }}>
             Energy: {metadata.beam_energy_kev.toFixed(3)} keV
           </div>
+        )}
+      </div>
+      <div className="control-panel-section">
+        <div className="control-panel-label">Pixel</div>
+        {cursorInfo ? (
+          <div className="cursor-info-panel">
+            <span>fast: {cursorInfo.fast}</span>
+            <span>slow: {cursorInfo.slow}</span>
+            <span>value: {cursorInfo.value}</span>
+            {cursorInfo.resolution_angstrom !== undefined && (
+              <span>d: {cursorInfo.resolution_angstrom.toFixed(2)} Å</span>
+            )}
+          </div>
+        ) : (
+          <div className="cursor-info-empty">—</div>
         )}
       </div>
     </div>
