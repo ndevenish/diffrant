@@ -60,7 +60,5 @@ export interface SeriesState {
   currentIndex: number;       // first frame of the stack window
   stackCount: number;         // frames to combine (1 = no stacking)
   stackMode: StackMode;
-  playing: boolean;
-  playFps: number;            // frames per second during playback
   totalFrames?: number;       // undefined = unknown/infinite
 }

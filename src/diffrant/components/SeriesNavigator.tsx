@@ -7,7 +7,7 @@ interface SeriesNavigatorProps {
 }
 
 export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavigatorProps) {
-  const { currentIndex, stackCount, stackMode, playing, playFps, totalFrames } = seriesState;
+  const { currentIndex, stackCount, stackMode, totalFrames } = seriesState;
 
   const lastFrame = totalFrames !== undefined ? totalFrames - stackCount : undefined;
   const canGoBack = currentIndex > 0;
@@ -28,10 +28,6 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
     if (lastFrame === undefined) return;
     onSeriesStateChange({ ...seriesState, currentIndex: Math.max(0, lastFrame) });
   }
-  function togglePlay() {
-    onSeriesStateChange({ ...seriesState, playing: !playing });
-  }
-
   function handleFrameInput(value: string) {
     const n = parseInt(value, 10);
     if (isNaN(n)) return;
@@ -48,12 +44,6 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
 
   function handleStackMode(mode: StackMode) {
     onSeriesStateChange({ ...seriesState, stackMode: mode });
-  }
-
-  function handleFps(value: string) {
-    const n = parseInt(value, 10);
-    if (isNaN(n) || n < 1) return;
-    onSeriesStateChange({ ...seriesState, playFps: Math.min(n, 60) });
   }
 
   return (
@@ -77,13 +67,6 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
         </button>
         <button className="series-btn" onClick={goPrev} disabled={!canGoBack} title="Previous frame">
           &#x25C0;
-        </button>
-        <button
-          className={`series-btn series-btn-play ${playing ? 'series-btn-active' : ''}`}
-          onClick={togglePlay}
-          title={playing ? 'Pause' : 'Play'}
-        >
-          {playing ? '\u23F8' : '\u25B6'}
         </button>
         <button className="series-btn" onClick={goNext} disabled={!canGoForward} title="Next frame">
           &#x25B6;
@@ -126,20 +109,6 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
         </div>
       </div>
 
-      <div className="series-separator" />
-
-      <div className="series-group">
-        <span className="series-label">Speed:</span>
-        <input
-          className="series-input series-input-small"
-          type="number"
-          min={1}
-          max={60}
-          value={playFps}
-          onChange={(e) => handleFps(e.target.value)}
-        />
-        <span>fps</span>
-      </div>
     </div>
   );
 }

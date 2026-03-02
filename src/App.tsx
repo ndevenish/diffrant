@@ -18,8 +18,6 @@ const DEFAULT_SERIES: SeriesState = {
   currentIndex: 0,
   stackCount: 1,
   stackMode: 'sum',
-  playing: false,
-  playFps: 5,
   totalFrames: 3,
 };
 

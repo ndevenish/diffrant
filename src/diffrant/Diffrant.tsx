@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import type { DiffrantProps, SeriesState } from './types';
 import { useImageLoader } from './hooks/useImageLoader';
 import { useSeriesLoader } from './hooks/useSeriesLoader';
@@ -11,8 +11,6 @@ const DEFAULT_SERIES: SeriesState = {
   currentIndex: 0,
   stackCount: 1,
   stackMode: 'sum',
-  playing: false,
-  playFps: 5,
 };
 
 export function Diffrant({
@@ -81,32 +79,6 @@ export function Diffrant({
     const exposureMax = Math.max(p90, 2);
     onViewerStateChangeRef.current({ ...viewerStateRef.current, exposureMax });
   }, [imageData, metadata, autoExposureTrigger]);
-
-  // --- Play timer ---
-  const seriesStateRef = useRef(activeSeries);
-  seriesStateRef.current = activeSeries;
-  const onSeriesStateChangeRef = useRef(onSeriesStateChange);
-  onSeriesStateChangeRef.current = onSeriesStateChange;
-
-  // Stable callback for advancing frames — avoids recreating the interval
-  const advanceFrame = useCallback(() => {
-    const s = seriesStateRef.current;
-    const cb = onSeriesStateChangeRef.current;
-    if (!cb) return;
-    const next = s.currentIndex + s.stackCount;
-    if (s.totalFrames !== undefined && next + s.stackCount > s.totalFrames) {
-      // Reached the end — stop playing
-      cb({ ...s, playing: false });
-    } else {
-      cb({ ...s, currentIndex: next });
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isSeries || !activeSeries.playing) return;
-    const interval = setInterval(advanceFrame, 1000 / activeSeries.playFps);
-    return () => clearInterval(interval);
-  }, [isSeries, activeSeries.playing, activeSeries.playFps, advanceFrame]);
 
   if (loading) {
     return (

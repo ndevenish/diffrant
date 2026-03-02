@@ -89,15 +89,6 @@
   cursor: default;
 }
 
-.series-btn-play {
-  padding: 4px 10px;
-}
-
-.series-btn-active {
-  background: #335;
-  border-color: #558;
-}
-
 .series-mode-toggle {
   display: flex;
 }
