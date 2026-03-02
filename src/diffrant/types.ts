@@ -52,3 +52,18 @@ export interface CursorInfo {
   value: number;
   resolution_angstrom?: number; // d-spacing resolution at this pixel
 }
+
+export interface SeriesInfo {
+  name: string;
+  frameCount: number;
+}
+
+export type SeriesFrameUrlResolver = (frameNumber: number) => { metadataUrl: string; imageUrl: string };
+
+export interface SeriesViewerProps {
+  seriesInfo: SeriesInfo;
+  getFrameUrls: SeriesFrameUrlResolver;
+  viewerState: ViewerState;
+  onViewerStateChange: (state: ViewerState) => void;
+  autoExposureTrigger?: number;
+}

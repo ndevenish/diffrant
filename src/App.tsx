@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Diffrant } from './diffrant';
+import { SeriesViewer } from './diffrant';
 import type { ViewerState } from './diffrant';
 import './App.css';
 
@@ -21,12 +21,16 @@ function App() {
     setViewerState(state);
   }, []);
 
+  const getFrameUrls = useCallback((frameNumber: number) => ({
+    metadataUrl: `/data/se_thau_10_1_00001.json`,
+    imageUrl: `/data/se_thau_10_1_${String(frameNumber).padStart(5, '0')}.png`,
+  }), []);
+
   return (
     <div className="app">
-      <Diffrant
-        metadataUrl="/data/se_thau_10_1_00001.json"
-        imageUrl="/data/se_thau_10_1_00001.png"
-        imageNumber={1}
+      <SeriesViewer
+        seriesInfo={{ name: 'Sample Series', frameCount: 5 }}
+        getFrameUrls={getFrameUrls}
         viewerState={viewerState}
         onViewerStateChange={handleStateChange}
       />
