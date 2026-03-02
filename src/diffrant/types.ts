@@ -26,8 +26,6 @@ export interface DiffrantViewerProps {
   metadata: ImageMetadata;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
-  seriesState?: SeriesState;
-  onSeriesStateChange?: (state: SeriesState) => void;
 }
 
 export interface DiffrantProps {

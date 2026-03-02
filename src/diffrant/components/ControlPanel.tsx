@@ -1,9 +1,8 @@
 import { memo } from 'react';
-import type { RawImageData, ImageMetadata, ViewerState, ColormapName, CursorInfo, SeriesState } from '../types';
+import type { RawImageData, ImageMetadata, ViewerState, ColormapName, CursorInfo } from '../types';
 import { Histogram } from './Histogram';
 import { ColormapSelector } from './ColormapSelector';
 import { DownsampleSelector } from './DownsampleSelector';
-import { SeriesNavigator } from './SeriesNavigator';
 import './ControlPanel.css';
 
 interface ControlPanelProps {
@@ -12,8 +11,6 @@ interface ControlPanelProps {
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
   cursorInfo: CursorInfo | null;
-  seriesState?: SeriesState;
-  onSeriesStateChange?: (state: SeriesState) => void;
 }
 
 export const ControlPanel = memo(function ControlPanel({
@@ -22,17 +19,9 @@ export const ControlPanel = memo(function ControlPanel({
   viewerState,
   onViewerStateChange,
   cursorInfo,
-  seriesState,
-  onSeriesStateChange,
 }: ControlPanelProps) {
   return (
     <div className="control-panel">
-      {seriesState && onSeriesStateChange && (
-        <SeriesNavigator
-          seriesState={seriesState}
-          onSeriesStateChange={onSeriesStateChange}
-        />
-      )}
       <Histogram
         imageData={imageData}
         metadata={metadata}
@@ -127,6 +116,5 @@ export const ControlPanel = memo(function ControlPanel({
     && prev.cursorInfo?.fast === next.cursorInfo?.fast
     && prev.cursorInfo?.slow === next.cursorInfo?.slow
     && prev.cursorInfo?.value === next.cursorInfo?.value
-    && prev.cursorInfo?.resolution_angstrom === next.cursorInfo?.resolution_angstrom
-    && prev.seriesState === next.seriesState;
+    && prev.cursorInfo?.resolution_angstrom === next.cursorInfo?.resolution_angstrom;
 });

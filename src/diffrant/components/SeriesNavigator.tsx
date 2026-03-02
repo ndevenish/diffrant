@@ -58,10 +58,8 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
 
   return (
     <div className="series-navigator">
-      <div className="control-panel-label">Series</div>
-
-      <div className="series-frame-indicator">
-        Frame{' '}
+      <div className="series-group">
+        <span className="series-label">Frame</span>
         <input
           className="series-input series-input-frame"
           type="number"
@@ -70,7 +68,7 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
           value={currentIndex}
           onChange={(e) => handleFrameInput(e.target.value)}
         />
-        {totalFrames !== undefined && <span> / {totalFrames}</span>}
+        {totalFrames !== undefined && <span>/ {totalFrames}</span>}
       </div>
 
       <div className="series-nav-buttons">
@@ -100,8 +98,10 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
         </button>
       </div>
 
-      <div className="series-options-row">
-        <span>Stack:</span>
+      <div className="series-separator" />
+
+      <div className="series-group">
+        <span className="series-label">Stack:</span>
         <input
           className="series-input series-input-small"
           type="number"
@@ -126,8 +126,10 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
         </div>
       </div>
 
-      <div className="series-options-row">
-        <span>Speed:</span>
+      <div className="series-separator" />
+
+      <div className="series-group">
+        <span className="series-label">Speed:</span>
         <input
           className="series-input series-input-small"
           type="number"

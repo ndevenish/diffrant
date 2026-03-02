@@ -9,8 +9,6 @@ export function DiffrantViewer({
   metadata,
   viewerState,
   onViewerStateChange,
-  seriesState,
-  onSeriesStateChange,
 }: DiffrantViewerProps) {
   const [cursorInfo, setCursorInfo] = useState<CursorInfo | null>(null);
 
@@ -37,8 +35,6 @@ export function DiffrantViewer({
           viewerState={viewerState}
           onViewerStateChange={onViewerStateChange}
           cursorInfo={cursorInfo}
-          seriesState={seriesState}
-          onSeriesStateChange={onSeriesStateChange}
         />
       </div>
     </div>

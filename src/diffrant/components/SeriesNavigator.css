@@ -1,15 +1,31 @@
 .series-navigator {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.series-frame-indicator {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
   font-size: 12px;
   color: #ccc;
+  flex-shrink: 0;
+}
+
+.series-group {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+}
+
+.series-label {
+  white-space: nowrap;
+}
+
+.series-separator {
+  width: 1px;
+  height: 20px;
+  background: #444;
+  flex-shrink: 0;
 }
 
 .series-input {
@@ -47,7 +63,7 @@
 
 .series-nav-buttons {
   display: flex;
-  gap: 4px;
+  gap: 2px;
 }
 
 .series-btn {
@@ -58,7 +74,6 @@
   font-size: 12px;
   padding: 4px 8px;
   cursor: pointer;
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -75,7 +90,7 @@
 }
 
 .series-btn-play {
-  flex: 1.5;
+  padding: 4px 10px;
 }
 
 .series-btn-active {
@@ -83,17 +98,8 @@
   border-color: #558;
 }
 
-.series-options-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #ccc;
-}
-
 .series-mode-toggle {
   display: flex;
-  margin-left: auto;
 }
 
 .series-mode-btn {

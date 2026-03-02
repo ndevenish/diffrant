@@ -26,6 +26,19 @@
   /* ControlPanel styles handle the rest */
 }
 
+.diffrant-series-wrapper {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.diffrant-series-content {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
 .diffrant-loading,
 .diffrant-error {
   flex: 1;

@@ -3,6 +3,7 @@ import type { DiffrantProps, SeriesState } from './types';
 import { useImageLoader } from './hooks/useImageLoader';
 import { useSeriesLoader } from './hooks/useSeriesLoader';
 import { DiffrantViewer } from './DiffrantViewer';
+import { SeriesNavigator } from './components/SeriesNavigator';
 import './Diffrant.css';
 
 const NOOP_URL_FACTORY = () => '';
@@ -131,14 +132,31 @@ export function Diffrant({
     );
   }
 
+  if (isSeries) {
+    return (
+      <div className="diffrant-series-wrapper">
+        <SeriesNavigator
+          seriesState={seriesState}
+          onSeriesStateChange={onSeriesStateChange}
+        />
+        <div className="diffrant-series-content">
+          <DiffrantViewer
+            imageData={imageData}
+            metadata={metadata}
+            viewerState={viewerState}
+            onViewerStateChange={onViewerStateChange}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <DiffrantViewer
       imageData={imageData}
       metadata={metadata}
       viewerState={viewerState}
       onViewerStateChange={onViewerStateChange}
-      seriesState={isSeries ? seriesState : undefined}
-      onSeriesStateChange={isSeries ? onSeriesStateChange : undefined}
     />
   );
 }
