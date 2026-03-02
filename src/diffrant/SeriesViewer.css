@@ -34,7 +34,7 @@
 }
 
 .series-nav-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 32px;
@@ -47,6 +47,8 @@
   font-size: 14px;
   line-height: 1;
   transition: background 0.15s, border-color 0.15s;
+  font-family: monospace;
+  font-weight: bold;
 }
 
 .series-nav-btn:hover:not(:disabled) {
@@ -60,31 +62,15 @@
   cursor: not-allowed;
 }
 
-.series-nav-btn span:first-child::before {
-  content: '';
-  border: 2px solid currentColor;
-  border-bottom: none;
-  border-left: none;
-  transform: rotate(45deg);
-  width: 6px;
-  height: 6px;
-  display: inline-block;
+.series-nav-btn:hover:not(:disabled) {
+  background: #3a3a3a;
+  border-color: #666;
+  color: #fff;
 }
 
-.series-nav-btn:last-child span:last-child::before {
-  content: '';
-  border: 2px solid currentColor;
-  border-bottom: none;
-  border-left: none;
-  transform: rotate(45deg);
-  width: 6px;
-  height: 6px;
-  display: inline-block;
-}
-
-.btn-prev .series-nav-btn:last-child span:last-child::before,
-.series-nav-btn:first-of-type span:last-child::before {
-  transform: rotate(225deg);
+.series-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .series-frame-indicator {

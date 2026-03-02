@@ -122,13 +122,13 @@ export function SeriesViewer({
           <h2 className="series-name">{seriesInfo.name}</h2>
         </div>
         <div className="series-nav-center">
-          <button className="series-nav-btn" onClick={handleFirst} disabled={currentFrame === 1} title="First frame">
-            <span>|</span><span></span>
-          </button>
-          <button className="series-nav-btn" onClick={handlePrev} disabled={currentFrame === 1} title="Previous frame">
-            <span></span><span></span>
-          </button>
-          <div className="series-frame-indicator">
+        <button className="series-nav-btn btn-first" onClick={handleFirst} disabled={currentFrame === 1} title="First frame">
+          {'|'}&lt;
+        </button>
+        <button className="series-nav-btn btn-prev" onClick={handlePrev} disabled={currentFrame === 1} title="Previous frame">
+          &lt;
+        </button>
+        <div className="series-frame-indicator">
             {isEditingFrame ? (
               <input
                 ref={inputRef}
@@ -154,17 +154,17 @@ export function SeriesViewer({
               </span>
             )}
           </div>
-          <button className="series-nav-btn" onClick={handleNext} disabled={currentFrame === seriesInfo.frameCount} title="Next frame">
-            <span></span><span></span>
-          </button>
-          <button 
-            className="series-nav-btn" 
-            onClick={handleLast} 
-            disabled={currentFrame === seriesInfo.frameCount} 
-            title="Last frame"
-          >
-            <span></span><span>|</span>
-          </button>
+        <button className="series-nav-btn btn-next" onClick={handleNext} disabled={currentFrame === seriesInfo.frameCount} title="Next frame">
+          &gt;
+        </button>
+        <button 
+          className="series-nav-btn btn-last" 
+          onClick={handleLast} 
+          disabled={currentFrame === seriesInfo.frameCount} 
+          title="Last frame"
+        >
+          &gt;|
+        </button>
         </div>
         <div className="series-nav-right" />
       </nav>
