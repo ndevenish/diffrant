@@ -21,6 +21,11 @@
   white-space: nowrap;
 }
 
+.series-filename {
+  color: #999;
+  font-family: monospace;
+}
+
 .series-separator {
   width: 1px;
   height: 20px;

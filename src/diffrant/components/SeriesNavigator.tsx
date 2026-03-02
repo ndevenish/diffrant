@@ -7,7 +7,7 @@ interface SeriesNavigatorProps {
 }
 
 export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavigatorProps) {
-  const { currentIndex, stackCount, stackMode, totalFrames } = seriesState;
+  const { currentIndex, stackCount, stackMode, totalFrames, filename } = seriesState;
 
   const lastFrame = totalFrames !== undefined ? totalFrames - stackCount : undefined;
   const canGoBack = currentIndex > 0;
@@ -59,6 +59,7 @@ export function SeriesNavigator({ seriesState, onSeriesStateChange }: SeriesNavi
           onChange={(e) => handleFrameInput(e.target.value)}
         />
         {totalFrames !== undefined && <span>/ {totalFrames}</span>}
+        {filename && <span className="series-filename">{filename}</span>}
       </div>
 
       <div className="series-nav-buttons">

@@ -61,4 +61,5 @@ export interface SeriesState {
   stackCount: number;         // frames to combine (1 = no stacking)
   stackMode: StackMode;
   totalFrames?: number;       // undefined = unknown/infinite
+  filename?: string;          // current frame filename for display
 }

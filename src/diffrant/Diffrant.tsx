@@ -105,10 +105,16 @@ export function Diffrant({
   }
 
   if (isSeries) {
+    const url = imageUrlFactory(seriesState.currentIndex);
+    const filename = seriesState.filename ?? url.split('/').pop() ?? '';
+    const seriesWithFilename = filename !== seriesState.filename
+      ? { ...seriesState, filename }
+      : seriesState;
+
     return (
       <div className="diffrant-series-wrapper">
         <SeriesNavigator
-          seriesState={seriesState}
+          seriesState={seriesWithFilename}
           onSeriesStateChange={onSeriesStateChange}
         />
         <div className="diffrant-series-content">
