@@ -14,3 +14,10 @@
 .image-canvas:active {
   cursor: grabbing;
 }
+
+.image-canvas-loupe {
+  position: absolute;
+  pointer-events: none;
+  display: none;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}

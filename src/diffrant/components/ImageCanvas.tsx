@@ -19,11 +19,13 @@ export function ImageCanvas({
   onCursorChange,
 }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const loupeCanvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
   const isDragging = useRef(false);
   const lastMouse = useRef({ x: 0, y: 0 });
   const hasAutoFit = useRef(false);
+  const loupe = useRef({ active: false, imgX: 0, imgY: 0, canvasX: 0, canvasY: 0 });
 
   // Live viewer state — updated from props AND directly from mouse handlers.
   // Canvas renders from this ref, avoiding a full React round-trip per frame.
@@ -64,6 +66,8 @@ export function ImageCanvas({
     ? 0.9 * Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height)
     : 0.01;
 
+  const LOUPE_ZOOM = 25; // min zoom for pixel text to appear
+
   // Schedule a canvas render — coalesces via single RAF
   const scheduleRender = useCallback(() => {
     cancelAnimationFrame(rafId.current);
@@ -81,6 +85,35 @@ export function ImageCanvas({
       const lut = buildLUT(imageData.depth, vs.exposureMin, vs.exposureMax);
       const colormap = getColormapTable(vs.colormap);
       renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, vs, metadata, lut, colormap);
+
+      // Loupe overlay
+      const loupeCanvas = loupeCanvasRef.current;
+      const lp = loupe.current;
+      if (loupeCanvas && lp.active) {
+        const side = Math.floor(Math.min(canvasSize.width, canvasSize.height) / 2);
+        loupeCanvas.width = side;
+        loupeCanvas.height = side;
+
+        // Position centered on cursor, clamped to stay on-screen
+        const left = Math.max(0, Math.min(canvasSize.width - side, lp.canvasX - side / 2));
+        const top = Math.max(0, Math.min(canvasSize.height - side, lp.canvasY - side / 2));
+        loupeCanvas.style.left = `${left}px`;
+        loupeCanvas.style.top = `${top}px`;
+        loupeCanvas.style.display = 'block';
+
+        const loupeCtx = loupeCanvas.getContext('2d');
+        if (loupeCtx) {
+          const loupeZoom = Math.max(LOUPE_ZOOM, vs.zoom);
+          const loupeVS: ViewerState = {
+            ...vs,
+            pan: { x: lp.imgX, y: lp.imgY },
+            zoom: loupeZoom,
+          };
+          renderRegion(loupeCtx, side, side, imageData, loupeVS, metadata, lut, colormap);
+        }
+      } else if (loupeCanvas) {
+        loupeCanvas.style.display = 'none';
+      }
     });
   }, [canvasSize, imageData, metadata]);
 
@@ -159,13 +192,24 @@ export function ImageCanvas({
     [canvasSize, minZoom, scheduleRender],
   );
 
-  // Drag to pan
+  // Drag to pan / middle-click loupe
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) {
       isDragging.current = true;
       lastMouse.current = { x: e.clientX, y: e.clientY };
+    } else if (e.button === 2) {
+      e.preventDefault();
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const vs = liveState.current;
+      const imgX = (cx - canvasSize.width / 2) / vs.zoom + vs.pan.x;
+      const imgY = (cy - canvasSize.height / 2) / vs.zoom + vs.pan.y;
+      loupe.current = { active: true, imgX, imgY, canvasX: cx, canvasY: cy };
+      scheduleRender();
     }
-  }, []);
+  }, [canvasSize, scheduleRender]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
@@ -185,6 +229,12 @@ export function ImageCanvas({
           onCursorRef.current({ fast: ix, slow: iy, value, resolution_angstrom: res ?? undefined });
         } else {
           onCursorRef.current(null);
+        }
+
+        // Update loupe position while active
+        if (loupe.current.active) {
+          loupe.current = { active: true, imgX, imgY, canvasX: cx, canvasY: cy };
+          scheduleRender();
         }
       }
 
@@ -209,9 +259,14 @@ export function ImageCanvas({
     [canvasSize, imageData, scheduleRender],
   );
 
-  const handleMouseUp = useCallback(() => {
-    isDragging.current = false;
-  }, []);
+  const handleMouseUp = useCallback((e: React.MouseEvent) => {
+    if (e.button === 0) {
+      isDragging.current = false;
+    } else if (e.button === 2) {
+      loupe.current.active = false;
+      scheduleRender();
+    }
+  }, [scheduleRender]);
 
   const handleDoubleClick = useCallback(() => {
     const fitZoom = Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height);
@@ -227,7 +282,13 @@ export function ImageCanvas({
 
   const handleMouseLeave = useCallback(() => {
     isDragging.current = false;
+    loupe.current.active = false;
+    scheduleRender();
     onCursorRef.current(null);
+  }, [scheduleRender]);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
   }, []);
 
   return (
@@ -241,7 +302,9 @@ export function ImageCanvas({
         onMouseUp={handleMouseUp}
         onDoubleClick={handleDoubleClick}
         onMouseLeave={handleMouseLeave}
+        onContextMenu={handleContextMenu}
       />
+      <canvas ref={loupeCanvasRef} className="image-canvas-loupe" />
     </div>
   );
 }
