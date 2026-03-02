@@ -29,21 +29,33 @@ export function ImageCanvas({
   // Canvas renders from this ref, avoiding a full React round-trip per frame.
   const liveState = useRef(viewerState);
   const rafId = useRef(0);
+  // Track the last state we sent to the parent, so the props-sync effect can
+  // distinguish "parent echoing our own update" from "genuinely new external change".
+  const lastSentState = useRef(viewerState);
 
   // Keep callback refs stable so mouse handlers don't need re-creation
   const onChangeRef = useRef(onViewerStateChange);
   onChangeRef.current = onViewerStateChange;
+
+  // Notify parent and record the sent state so props-sync can ignore the echo.
+  const emitState = useCallback((state: ViewerState) => {
+    lastSentState.current = state;
+    onChangeRef.current(state);
+  }, []);
   const onCursorRef = useRef(onCursorChange);
   onCursorRef.current = onCursorChange;
   const metadataRef = useRef(metadata);
   metadataRef.current = metadata;
 
   // Sync from props (exposure/colormap changes from ControlPanel, etc.)
-  // Skip during drag — liveState is authoritative while the user is interacting,
-  // and the prop update lags behind, causing a flicker to the previous position.
+  // Only apply when the incoming props differ from what we last sent — this
+  // means the change originated externally (e.g. ControlPanel).  Skip echoed
+  // updates from our own interaction handlers to avoid reverting liveState
+  // to a stale value during rapid wheel/drag sequences.
   useEffect(() => {
-    if (!isDragging.current) {
+    if (viewerState !== lastSentState.current) {
       liveState.current = viewerState;
+      lastSentState.current = viewerState;
     }
   }, [viewerState]);
 
@@ -88,7 +100,7 @@ export function ImageCanvas({
       zoom: fitZoom,
     };
     liveState.current = newState;
-    onChangeRef.current(newState);
+    emitState(newState);
     scheduleRender();
   }, [canvasSize, imageData, scheduleRender]);
 
@@ -142,7 +154,7 @@ export function ImageCanvas({
       };
       liveState.current = newState;
       scheduleRender();
-      onChangeRef.current(newState);
+      emitState(newState);
     },
     [canvasSize, minZoom, scheduleRender],
   );
@@ -192,7 +204,7 @@ export function ImageCanvas({
       };
       liveState.current = newState;
       scheduleRender();
-      onChangeRef.current(newState);
+      emitState(newState);
     },
     [canvasSize, imageData, scheduleRender],
   );
@@ -210,7 +222,7 @@ export function ImageCanvas({
     };
     liveState.current = newState;
     scheduleRender();
-    onChangeRef.current(newState);
+    emitState(newState);
   }, [canvasSize, imageData, scheduleRender]);
 
   const handleMouseLeave = useCallback(() => {
