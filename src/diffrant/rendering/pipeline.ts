@@ -50,8 +50,9 @@ export function renderRegion(
   metadata: ImageMetadata,
   lut: Uint8Array,
   colormap: ColormapTable,
+  pixelBuffer?: globalThis.ImageData,
 ): void {
-  const imgData = ctx.createImageData(canvasWidth, canvasHeight);
+  const imgData = pixelBuffer ?? ctx.createImageData(canvasWidth, canvasHeight);
   const pixels = imgData.data; // Uint8ClampedArray
   const { data: rawData, width: imgW, height: imgH } = imageData;
   const { pan, zoom, showMask, downsampleMode } = viewState;

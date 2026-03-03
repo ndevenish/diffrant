@@ -29,6 +29,9 @@ export function ImageCanvas({
   const loupe = useRef({ active: false, imgX: 0, imgY: 0, canvasX: 0, canvasY: 0 });
   const softStopAccum = useRef(0);
   const softStopTimeout = useRef(0);
+  const lutCache = useRef<{ exposureMin: number; exposureMax: number; depth: number; lut: Uint8Array } | null>(null);
+  const pixelBuffer = useRef<globalThis.ImageData | null>(null);
+  const loupePixelBuffer = useRef<globalThis.ImageData | null>(null);
 
   // Live viewer state — updated from props AND directly from mouse handlers.
   // Canvas renders from this ref, avoiding a full React round-trip per frame.
@@ -74,16 +77,34 @@ export function ImageCanvas({
       const canvas = canvasRef.current;
       if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) return;
 
-      canvas.width = canvasSize.width;
-      canvas.height = canvasSize.height;
+      // Fix 1: only reset canvas backing store when dimensions actually change
+      if (canvas.width !== canvasSize.width || canvas.height !== canvasSize.height) {
+        canvas.width = canvasSize.width;
+        canvas.height = canvasSize.height;
+      }
 
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
       const vs = liveState.current;
-      const lut = buildLUT(imageData.depth, vs.exposureMin, vs.exposureMax);
+
+      // Fix 2: cache the LUT; only rebuild when exposure or depth changes
+      const cached = lutCache.current;
+      const lut = (cached && cached.exposureMin === vs.exposureMin && cached.exposureMax === vs.exposureMax && cached.depth === imageData.depth)
+        ? cached.lut
+        : (() => {
+            const newLut = buildLUT(imageData.depth, vs.exposureMin, vs.exposureMax);
+            lutCache.current = { exposureMin: vs.exposureMin, exposureMax: vs.exposureMax, depth: imageData.depth, lut: newLut };
+            return newLut;
+          })();
+
       const colormap = getColormapTable(vs.colormap);
-       renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, vs, imageData as unknown as ImageMetadata, lut, colormap);
+
+      // Fix 3: reuse pixel buffer; only reallocate when canvas size changes
+      if (!pixelBuffer.current || pixelBuffer.current.width !== canvasSize.width || pixelBuffer.current.height !== canvasSize.height) {
+        pixelBuffer.current = ctx.createImageData(canvasSize.width, canvasSize.height);
+      }
+      renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, vs, imageData as unknown as ImageMetadata, lut, colormap, pixelBuffer.current);
 
        // Loupe overlay
        const loupeCanvas = loupeCanvasRef.current;
@@ -94,8 +115,10 @@ export function ImageCanvas({
        const lp = loupe.current;
        if (loupeCanvas && lp.active && vs.zoom < 25) {
         const side = Math.floor(Math.min(canvasSize.width, canvasSize.height) / 2);
-        loupeCanvas.width = side;
-        loupeCanvas.height = side;
+        if (loupeCanvas.width !== side || loupeCanvas.height !== side) {
+          loupeCanvas.width = side;
+          loupeCanvas.height = side;
+        }
 
         // Position centered on cursor, clamped to stay on-screen
         const left = Math.max(0, Math.min(canvasSize.width - side, lp.canvasX - side / 2));
@@ -112,7 +135,10 @@ export function ImageCanvas({
             pan: { x: lp.imgX, y: lp.imgY },
             zoom: loupeZoom,
           };
-          renderRegion(loupeCtx, side, side, imageData, loupeVS, imageData as unknown as ImageMetadata, lut, colormap);
+          if (!loupePixelBuffer.current || loupePixelBuffer.current.width !== side || loupePixelBuffer.current.height !== side) {
+            loupePixelBuffer.current = loupeCtx.createImageData(side, side);
+          }
+          renderRegion(loupeCtx, side, side, imageData, loupeVS, imageData as unknown as ImageMetadata, lut, colormap, loupePixelBuffer.current);
         }
       } else if (loupeCanvas) {
         loupeCanvas.style.display = 'none';
