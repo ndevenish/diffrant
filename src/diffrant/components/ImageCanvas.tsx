@@ -186,7 +186,7 @@ export function ImageCanvas({
         softStopAccum.current += e.deltaY;
         // Reset accumulator after a pause so a later zoom-in isn't blocked
         clearTimeout(softStopTimeout.current);
-        softStopTimeout.current = window.setTimeout(() => { softStopAccum.current = 0; }, 600);
+        softStopTimeout.current = window.setTimeout(() => { softStopAccum.current = 0; }, 200);
         if (Math.abs(softStopAccum.current) < SOFT_STOP_THRESHOLD) {
           newZoom = SOFT_STOP;
         } else {
