@@ -88,7 +88,7 @@ export function ImageCanvas({
        // Loupe overlay
        const loupeCanvas = loupeCanvasRef.current;
        const lp = loupe.current;
-       if (loupeCanvas && lp.active && vs.zoom <= 25) {
+       if (loupeCanvas && lp.active && vs.zoom < 25) {
         const side = Math.floor(Math.min(canvasSize.width, canvasSize.height) / 2);
         loupeCanvas.width = side;
         loupeCanvas.height = side;
