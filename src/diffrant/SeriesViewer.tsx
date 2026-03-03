@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { SeriesViewerProps } from './types';
-import { useImageLoader } from './hooks/useImageLoader';
+import { useSeriesLoader } from './hooks/useSeriesLoader';
 import { DiffrantViewer } from './DiffrantViewer';
 import './SeriesViewer.css';
 
@@ -17,8 +17,7 @@ export function SeriesViewer({
   const [isEditingFrame, setIsEditingFrame] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { metadataUrl, imageUrl } = getFrameUrls(currentFrame);
-  const { imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
+  const { imageData, loading, error } = useSeriesLoader(getFrameUrls, currentFrame, seriesInfo.frameCount);
 
   const processedTrigger = useRef(-1);
   const viewerStateRef = useRef(viewerState);
