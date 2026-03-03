@@ -63,6 +63,8 @@ export type SeriesFrameUrlResolver = (frameNumber: number) => { metadataUrl: str
 export interface SeriesViewerProps {
   seriesInfo: SeriesInfo;
   getFrameUrls: SeriesFrameUrlResolver;
+  currentFrame: number;
+  onFrameChange: (frame: number) => void;
   viewerState: ViewerState;
   onViewerStateChange: (state: ViewerState) => void;
   autoExposureTrigger?: number;

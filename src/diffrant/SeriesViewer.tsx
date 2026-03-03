@@ -7,11 +7,12 @@ import './SeriesViewer.css';
 export function SeriesViewer({
   seriesInfo,
   getFrameUrls,
+  currentFrame,
+  onFrameChange,
   viewerState,
   onViewerStateChange,
   autoExposureTrigger = 0,
 }: SeriesViewerProps) {
-  const [currentFrame, setCurrentFrame] = useState(1);
   const [customFrameInput, setCustomFrameInput] = useState('');
   const [isEditingFrame, setIsEditingFrame] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -70,41 +71,41 @@ export function SeriesViewer({
   }, [isEditingFrame]);
 
   const handleFirst = useCallback(() => {
-    setCurrentFrame(1);
+    onFrameChange(1);
     setIsEditingFrame(false);
-  }, []);
+  }, [onFrameChange]);
 
   const handlePrev = useCallback(() => {
-    if (currentFrame > 1) setCurrentFrame(currentFrame - 1);
-  }, [currentFrame]);
+    if (currentFrame > 1) onFrameChange(currentFrame - 1);
+  }, [currentFrame, onFrameChange]);
 
   const handleNext = useCallback(() => {
-    if (currentFrame < seriesInfo.frameCount) setCurrentFrame(currentFrame + 1);
-  }, [currentFrame, seriesInfo.frameCount]);
+    if (currentFrame < seriesInfo.frameCount) onFrameChange(currentFrame + 1);
+  }, [currentFrame, seriesInfo.frameCount, onFrameChange]);
 
   const handleLast = useCallback(() => {
-    setCurrentFrame(seriesInfo.frameCount);
+    onFrameChange(seriesInfo.frameCount);
     setIsEditingFrame(false);
-  }, [seriesInfo.frameCount]);
+  }, [seriesInfo.frameCount, onFrameChange]);
 
   const handleFrameInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setCustomFrameInput(value);
     const num = parseInt(value, 10);
     if (!isNaN(num) && num >= 1 && num <= seriesInfo.frameCount) {
-      setCurrentFrame(num);
+      onFrameChange(num);
     }
-  }, [seriesInfo.frameCount]);
+  }, [seriesInfo.frameCount, onFrameChange]);
 
   const handleFrameSubmit = useCallback(() => {
     const num = parseInt(customFrameInput, 10);
     if (!isNaN(num) && num >= 1 && num <= seriesInfo.frameCount) {
-      setCurrentFrame(num);
+      onFrameChange(num);
     } else {
       setCustomFrameInput(String(currentFrame));
     }
     setIsEditingFrame(false);
-  }, [customFrameInput, currentFrame, seriesInfo.frameCount]);
+  }, [customFrameInput, currentFrame, seriesInfo.frameCount, onFrameChange]);
 
   const handleFrameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {

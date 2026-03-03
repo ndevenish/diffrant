@@ -16,6 +16,7 @@ const DEFAULT_STATE: ViewerState = {
 
 function App() {
   const [viewerState, setViewerState] = useState<ViewerState>(DEFAULT_STATE);
+  const [currentFrame, setCurrentFrame] = useState(1);
 
   const handleStateChange = useCallback((state: ViewerState) => {
     setViewerState(state);
@@ -31,6 +32,8 @@ function App() {
       <SeriesViewer
         seriesInfo={{ name: 'Sample Series', frameCount: 5 }}
         getFrameUrls={getFrameUrls}
+        currentFrame={currentFrame}
+        onFrameChange={setCurrentFrame}
         viewerState={viewerState}
         onViewerStateChange={handleStateChange}
       />
