@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import type { SeriesViewerProps } from './types';
 import { useSeriesLoader } from './hooks/useSeriesLoader';
 import { DiffrantViewer } from './DiffrantViewer';
@@ -13,10 +13,6 @@ export function SeriesViewer({
   onViewerStateChange,
   autoExposureTrigger = 0,
 }: SeriesViewerProps) {
-  const [customFrameInput, setCustomFrameInput] = useState('');
-  const [isEditingFrame, setIsEditingFrame] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const { imageData, loading, error } = useSeriesLoader(getFrameUrls, currentFrame, seriesInfo.frameCount);
 
   const processedTrigger = useRef(-1);
@@ -58,119 +54,50 @@ export function SeriesViewer({
       }
     }
 
-    const exposureMax = Math.max(p90, 2);
-    onViewerStateChangeRef.current({ ...viewerStateRef.current, exposureMax });
+    onViewerStateChangeRef.current({ ...viewerStateRef.current, exposureMax: Math.max(p90, 2) });
   }, [imageData, autoExposureTrigger]);
 
-  useEffect(() => {
-    if (isEditingFrame && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditingFrame]);
-
-  const handleFirst = useCallback(() => {
-    onFrameChange(1);
-    setIsEditingFrame(false);
-  }, [onFrameChange]);
-
-  const handlePrev = useCallback(() => {
-    if (currentFrame > 1) onFrameChange(currentFrame - 1);
-  }, [currentFrame, onFrameChange]);
-
-  const handleNext = useCallback(() => {
-    if (currentFrame < seriesInfo.frameCount) onFrameChange(currentFrame + 1);
-  }, [currentFrame, seriesInfo.frameCount, onFrameChange]);
-
-  const handleLast = useCallback(() => {
-    onFrameChange(seriesInfo.frameCount);
-    setIsEditingFrame(false);
+  const handleFrameInput = useCallback((value: string) => {
+    const n = parseInt(value, 10);
+    if (isNaN(n)) return;
+    onFrameChange(Math.max(1, Math.min(seriesInfo.frameCount, n)));
   }, [seriesInfo.frameCount, onFrameChange]);
-
-  const handleFrameInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setCustomFrameInput(value);
-    const num = parseInt(value, 10);
-    if (!isNaN(num) && num >= 1 && num <= seriesInfo.frameCount) {
-      onFrameChange(num);
-    }
-  }, [seriesInfo.frameCount, onFrameChange]);
-
-  const handleFrameSubmit = useCallback(() => {
-    const num = parseInt(customFrameInput, 10);
-    if (!isNaN(num) && num >= 1 && num <= seriesInfo.frameCount) {
-      onFrameChange(num);
-    } else {
-      setCustomFrameInput(String(currentFrame));
-    }
-    setIsEditingFrame(false);
-  }, [customFrameInput, currentFrame, seriesInfo.frameCount, onFrameChange]);
-
-  const handleFrameKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleFrameSubmit();
-    } else if (e.key === 'Escape') {
-      setCustomFrameInput(String(currentFrame));
-      setIsEditingFrame(false);
-    }
-  }, [currentFrame, handleFrameSubmit]);
 
   return (
     <div className="series-viewer-container">
-      <nav className="series-nav-bar">
-        <div className="series-nav-left">
-          <h2 className="series-name">{seriesInfo.name}</h2>
+      <div className="series-navigator">
+        <span className="series-name">{seriesInfo.name}</span>
+        <div className="series-separator" />
+        <div className="series-group">
+          <span className="series-label">Frame</span>
+          <input
+            className="series-input series-input-frame"
+            type="number"
+            min={1}
+            max={seriesInfo.frameCount}
+            value={currentFrame}
+            onChange={(e) => handleFrameInput(e.target.value)}
+          />
+          <span>/ {seriesInfo.frameCount}</span>
         </div>
-        <div className="series-nav-center">
-        <button className="series-nav-btn btn-first" onClick={handleFirst} disabled={currentFrame === 1} title="First frame">
-          {'|'}&lt;
-        </button>
-        <button className="series-nav-btn btn-prev" onClick={handlePrev} disabled={currentFrame === 1} title="Previous frame">
-          &lt;
-        </button>
-        <div className="series-frame-indicator">
-            {isEditingFrame ? (
-              <input
-                ref={inputRef}
-                type="number"
-                className="series-frame-input"
-                value={customFrameInput}
-                onChange={handleFrameInputChange}
-                onKeyDown={handleFrameKeyDown}
-                onBlur={handleFrameSubmit}
-                min={1}
-                max={seriesInfo.frameCount}
-              />
-            ) : (
-              <span 
-                className="series-frame-display"
-                onClick={() => {
-                  setCustomFrameInput(String(currentFrame));
-                  setIsEditingFrame(true);
-                }}
-                title="Click to edit frame number"
-              >
-                {currentFrame} of {seriesInfo.frameCount}
-              </span>
-            )}
-          </div>
-        <button className="series-nav-btn btn-next" onClick={handleNext} disabled={currentFrame === seriesInfo.frameCount} title="Next frame">
-          &gt;
-        </button>
-        <button 
-          className="series-nav-btn btn-last" 
-          onClick={handleLast} 
-          disabled={currentFrame === seriesInfo.frameCount} 
-          title="Last frame"
-        >
-          &gt;|
-        </button>
+        <div className="series-nav-buttons">
+          <button className="series-btn" onClick={() => onFrameChange(1)} disabled={currentFrame === 1} title="First frame">
+            |&#x25C0;
+          </button>
+          <button className="series-btn" onClick={() => onFrameChange(currentFrame - 1)} disabled={currentFrame === 1} title="Previous frame">
+            &#x25C0;
+          </button>
+          <button className="series-btn" onClick={() => onFrameChange(currentFrame + 1)} disabled={currentFrame === seriesInfo.frameCount} title="Next frame">
+            &#x25B6;
+          </button>
+          <button className="series-btn" onClick={() => onFrameChange(seriesInfo.frameCount)} disabled={currentFrame === seriesInfo.frameCount} title="Last frame">
+            &#x25B6;|
+          </button>
         </div>
-        <div className="series-nav-right" />
-      </nav>
+      </div>
       <div className="series-viewer-content">
         {loading && (
-          <div className="series-loading">Loading frame {currentFrame}...</div>
+          <div className="series-loading">Loading frame {currentFrame}…</div>
         )}
         {error && (
           <div className="series-error">Error: {error}</div>
