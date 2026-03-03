@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import type { ImageData, SeriesFrameUrlResolver } from '../types';
 import { getLoader } from '../loaders';
 
@@ -17,17 +17,21 @@ interface CacheEntry {
 
 const MAX_CACHE_SIZE = 10;
 
-function evictCache(cache: Map<string, CacheEntry>) {
-  if (cache.size <= MAX_CACHE_SIZE) return;
+// Module-level cache — intentionally outside React so DevTools never inspects
+// the large typed arrays stored here.
+const frameCache = new Map<string, CacheEntry>();
+
+function evictCache() {
+  if (frameCache.size <= MAX_CACHE_SIZE) return;
   let oldestKey: string | null = null;
   let oldestTime = Infinity;
-  for (const [key, entry] of cache) {
+  for (const [key, entry] of frameCache) {
     if (entry.lastUsed < oldestTime) {
       oldestTime = entry.lastUsed;
       oldestKey = key;
     }
   }
-  if (oldestKey) cache.delete(oldestKey);
+  if (oldestKey) frameCache.delete(oldestKey);
 }
 
 async function fetchFrame(metadataUrl: string, imageUrl: string): Promise<ImageData> {
@@ -49,7 +53,49 @@ async function fetchFrame(metadataUrl: string, imageUrl: string): Promise<ImageD
     format = imageUrl.split('.').pop()?.toLowerCase() ?? 'png';
   }
   const raw = getLoader(format).load(imageBuffer, meta);
-  return { ...raw, ...meta };
+  const combined = { ...raw, ...meta };
+  // Make the pixel buffer non-enumerable so React DevTools doesn't try to
+  // serialize/diff 18M array elements during commit, causing a multi-second freeze.
+  Object.defineProperty(combined, 'data', {
+    value: raw.data,
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  });
+  return combined;
+}
+
+function getOrFetch(
+  getFrameUrls: SeriesFrameUrlResolver,
+  frame: number,
+  now: number,
+): Promise<ImageData> {
+  const { metadataUrl, imageUrl } = getFrameUrls(frame);
+  const key = imageUrl;
+  const existing = frameCache.get(key);
+  if (existing?.status === 'ready' && existing.data) {
+    existing.lastUsed = now;
+    return Promise.resolve(existing.data);
+  }
+  if (existing?.status === 'loading' && existing.promise) {
+    existing.lastUsed = now;
+    return existing.promise;
+  }
+  console.log(`[cache] fetching frame ${frame} (${imageUrl.split('/').pop()})`);
+  const promise = fetchFrame(metadataUrl, imageUrl).then((data) => {
+    const entry = frameCache.get(key);
+    if (entry) {
+      entry.status = 'ready';
+      entry.data = data;
+    }
+    return data;
+  }).catch((err) => {
+    frameCache.delete(key);
+    throw err;
+  });
+  frameCache.set(key, { status: 'loading', promise, lastUsed: now });
+  evictCache();
+  return promise;
 }
 
 export function useSeriesLoader(
@@ -61,45 +107,14 @@ export function useSeriesLoader(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const cacheRef = useRef(new Map<string, CacheEntry>());
-
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const cache = cacheRef.current;
     const now = Date.now();
 
-    function getOrFetch(frame: number): Promise<ImageData> {
-      const { metadataUrl, imageUrl } = getFrameUrls(frame);
-      const key = imageUrl;
-      const existing = cache.get(key);
-      if (existing?.status === 'ready' && existing.data) {
-        existing.lastUsed = now;
-        return Promise.resolve(existing.data);
-      }
-      if (existing?.status === 'loading' && existing.promise) {
-        existing.lastUsed = now;
-        return existing.promise;
-      }
-      const promise = fetchFrame(metadataUrl, imageUrl).then((data) => {
-        const entry = cache.get(key);
-        if (entry) {
-          entry.status = 'ready';
-          entry.data = data;
-        }
-        return data;
-      }).catch((err) => {
-        cache.delete(key);
-        throw err;
-      });
-      cache.set(key, { status: 'loading', promise, lastUsed: now });
-      evictCache(cache);
-      return promise;
-    }
-
-    getOrFetch(currentFrame)
+    getOrFetch(getFrameUrls, currentFrame, now)
       .then((data) => {
         if (cancelled) return;
         setImageData(data);
@@ -109,8 +124,8 @@ export function useSeriesLoader(
         for (const f of [currentFrame + 1, currentFrame + 2, currentFrame - 1]) {
           if (f < 1 || f > frameCount) continue;
           const { imageUrl } = getFrameUrls(f);
-          if (!cache.has(imageUrl)) {
-            getOrFetch(f).catch(() => {});
+          if (!frameCache.has(imageUrl)) {
+            getOrFetch(getFrameUrls, f, now).catch(() => {});
           }
         }
       })
