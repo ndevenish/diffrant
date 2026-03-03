@@ -343,7 +343,7 @@ function drawResolutionRings(
   const color = ringColor[viewState.colormap];
 
   // Scale thickness/font double per 10x zoom, floored at 1× when zoomed out
-  const uiScale = Math.max(1, Math.pow(2, Math.log10(zoom)));
+  const uiScale = Math.max(1, Math.pow(2, Math.log(zoom) / Math.log(5)));
 
   ctx.strokeStyle = color;
   ctx.lineWidth = 1.5 * uiScale;
