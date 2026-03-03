@@ -13,6 +13,20 @@ Diffraction image viewer React component for scientific imaging data.
 
 Controlled React component: `ViewerState` props in, `onViewerStateChange` callback out.
 
+### Components
+
+Three exported components, each composing the next:
+
+- **`Diffrant`** — fetches a single image+metadata by URL, manages `ImageData` state, passes down to `DiffrantViewer`
+- **`DiffrantViewer`** — pure viewer: accepts `ImageData` directly (no fetching), owns canvas + control panel
+- **`SeriesViewer`** (optional) — wraps `DiffrantViewer` with a frame navigator bar, caching/prefetch via `useSeriesLoader`, and optional auto-exposure on frame change
+
+### Data types
+
+- **`RawImageData`** — `{ data, width, height, depth }` from the loader
+- **`ImageMetadata`** — detector geometry fields (beam center, pixel size, trusted range, etc.)
+- **`ImageData`** — combined type: `RawImageData & Omit<ImageMetadata, 'image_depth'>`. The `data` pixel buffer is made **non-enumerable** to prevent React DevTools from serializing it.
+
 ### Rendering pipeline
 
 ```
@@ -33,11 +47,15 @@ Key pipeline details:
 ### Key directories
 
 - `src/diffrant/` — the reusable component
-  - `types.ts` — all type definitions (`ViewerState`, `ImageMetadata`, `RawImageData`, `CursorInfo`, etc.)
+  - `types.ts` — all type definitions (`ViewerState`, `ImageMetadata`, `RawImageData`, `ImageData`, `CursorInfo`, `SeriesInfo`, etc.)
+  - `Diffrant.tsx` — URL-fetching wrapper component
+  - `DiffrantViewer.tsx` — pure viewer component (accepts `ImageData` directly)
+  - `SeriesViewer.tsx` — multi-frame navigator wrapping `DiffrantViewer`
   - `rendering/` — pipeline.ts (LUT, render, histogram, overlays), colormaps.ts, downsample.ts
   - `components/` — ImageCanvas, Histogram, ControlPanel, ColormapSelector, DownsampleSelector
   - `loaders/` — format abstraction; currently PNG via `fast-png` for 16-bit support
-  - `hooks/` — useImageLoader (fetch + decode), useViewerState (convenience wrapper)
+  - `hooks/` — useImageLoader, useSeriesLoader (LRU cache + prefetch 2 ahead/1 behind), useViewerState
+  - `workers/` — background worker(s) for off-thread processing
 - `src/App.tsx` — demo app loading sample data
 - `public/data/` — sample 16-bit PNG (4148x4362) + JSON metadata
 - `contrib/` — utility scripts (e.g. HDF5→PNG converter)
