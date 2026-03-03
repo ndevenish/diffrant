@@ -87,6 +87,10 @@ export function ImageCanvas({
 
        // Loupe overlay
        const loupeCanvas = loupeCanvasRef.current;
+       if (loupeCanvas) {
+         const hi = 255 * 4;
+         loupeCanvas.style.borderColor = `rgb(${colormap[hi]}, ${colormap[hi + 1]}, ${colormap[hi + 2]})`;
+       }
        const lp = loupe.current;
        if (loupeCanvas && lp.active && vs.zoom < 25) {
         const side = Math.floor(Math.min(canvasSize.width, canvasSize.height) / 2);
