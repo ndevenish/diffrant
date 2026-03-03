@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import type { SeriesViewerProps } from './types';
 import { useSeriesLoader } from './hooks/useSeriesLoader';
 import { DiffrantViewer } from './DiffrantViewer';
@@ -15,11 +15,18 @@ export function SeriesViewer({
 }: SeriesViewerProps) {
   const { imageData, loading, error } = useSeriesLoader(getFrameUrls, currentFrame, seriesInfo.frameCount);
 
+  const [frameInputValue, setFrameInputValue] = useState(String(currentFrame));
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const processedTrigger = useRef(-1);
   const viewerStateRef = useRef(viewerState);
   viewerStateRef.current = viewerState;
   const onViewerStateChangeRef = useRef(onViewerStateChange);
   onViewerStateChangeRef.current = onViewerStateChange;
+
+  useEffect(() => {
+    setFrameInputValue(String(currentFrame));
+  }, [currentFrame]);
 
   useEffect(() => {
     if (!imageData) return;
@@ -58,10 +65,42 @@ export function SeriesViewer({
   }, [imageData, autoExposureTrigger]);
 
   const handleFrameInput = useCallback((value: string) => {
-    const n = parseInt(value, 10);
-    if (isNaN(n)) return;
-    onFrameChange(Math.max(1, Math.min(seriesInfo.frameCount, n)));
+    setFrameInputValue(value);
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(() => {
+      const n = parseInt(value, 10);
+      if (!isNaN(n)) {
+        const clamped = Math.max(1, Math.min(seriesInfo.frameCount, n));
+        setFrameInputValue(String(clamped));
+        onFrameChange(clamped);
+      }
+    }, 300);
   }, [seriesInfo.frameCount, onFrameChange]);
+
+  const handleFrameSubmit = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    const n = parseInt(frameInputValue, 10);
+    if (!isNaN(n)) {
+      const clamped = Math.max(1, Math.min(seriesInfo.frameCount, n));
+      setFrameInputValue(String(clamped));
+      onFrameChange(clamped);
+    }
+  }, [seriesInfo.frameCount, onFrameChange, frameInputValue]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleFrameSubmit();
+    }
+  }, [handleFrameSubmit]);
+
+  const handleBlur = useCallback(() => {
+    handleFrameSubmit();
+  }, [handleFrameSubmit]);
 
   return (
     <div className="series-viewer-container">
@@ -70,13 +109,15 @@ export function SeriesViewer({
         <div className="series-separator" />
         <div className="series-group">
           <span className="series-label">Frame</span>
-          <input
+           <input
             className="series-input series-input-frame"
             type="number"
             min={1}
             max={seriesInfo.frameCount}
-            value={currentFrame}
+            value={frameInputValue}
             onChange={(e) => handleFrameInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleBlur}
           />
           <span>/ {seriesInfo.frameCount}</span>
         </div>
