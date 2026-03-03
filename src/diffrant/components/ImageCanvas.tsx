@@ -3,6 +3,9 @@ import type { ImageData, ViewerState, ImageMetadata, CursorInfo } from '../types
 import { buildLUT, renderRegion, getColormapTable, pixelResolution } from '../rendering/pipeline';
 import './ImageCanvas.css';
 
+const SOFT_STOP = 25;
+const SOFT_STOP_THRESHOLD = 300;
+
 interface ImageCanvasProps {
   imageData: ImageData;
   viewerState: ViewerState;
@@ -174,8 +177,6 @@ export function ImageCanvas({
       const rawZoom = vs.zoom * zoomFactor;
 
       // Soft stop at 25x: snap to exactly 25 and require extra scroll to pass through
-      const SOFT_STOP = 25;
-      const SOFT_STOP_THRESHOLD = 300;
       const crossingStop = (vs.zoom < SOFT_STOP && rawZoom > SOFT_STOP)
                         || (vs.zoom > SOFT_STOP && rawZoom < SOFT_STOP);
       const atStop = vs.zoom === SOFT_STOP;
@@ -186,7 +187,7 @@ export function ImageCanvas({
         softStopAccum.current += e.deltaY;
         // Reset accumulator after a pause so a later zoom-in isn't blocked
         clearTimeout(softStopTimeout.current);
-        softStopTimeout.current = window.setTimeout(() => { softStopAccum.current = 0; }, 200);
+        softStopTimeout.current = window.setTimeout(() => { softStopAccum.current = -SOFT_STOP_THRESHOLD; }, 200);
         if (Math.abs(softStopAccum.current) < SOFT_STOP_THRESHOLD) {
           newZoom = SOFT_STOP;
         } else {
