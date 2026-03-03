@@ -346,7 +346,7 @@ function drawResolutionRings(
 
   // Scale thickness/font: 2× per 5× zoom, floored at 1× when zoomed out
   const uiScale = Math.max(1, Math.pow(2, Math.log(zoom) / Math.log(5)));
-  const font = `${Math.round(11 * uiScale)}px sans-serif`;
+  const font = `${Math.round(16.5 * uiScale)}px sans-serif`;
 
   ctx.font = font;
   ctx.textAlign = labelTextAlign;
