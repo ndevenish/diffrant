@@ -62,8 +62,6 @@ export function ImageCanvas({
     ? 0.9 * Math.min(canvasSize.width / imageData.width, canvasSize.height / imageData.height)
     : 0.01;
 
-  const LOUPE_ZOOM = 25; // min zoom for pixel text to appear
-
   // Schedule a canvas render — coalesces via single RAF
   const scheduleRender = useCallback(() => {
     cancelAnimationFrame(rafId.current);
@@ -82,10 +80,10 @@ export function ImageCanvas({
       const colormap = getColormapTable(vs.colormap);
        renderRegion(ctx, canvasSize.width, canvasSize.height, imageData, vs, imageData as unknown as ImageMetadata, lut, colormap);
 
-      // Loupe overlay
-      const loupeCanvas = loupeCanvasRef.current;
-      const lp = loupe.current;
-      if (loupeCanvas && lp.active) {
+       // Loupe overlay
+       const loupeCanvas = loupeCanvasRef.current;
+       const lp = loupe.current;
+       if (loupeCanvas && lp.active && vs.zoom <= 25) {
         const side = Math.floor(Math.min(canvasSize.width, canvasSize.height) / 2);
         loupeCanvas.width = side;
         loupeCanvas.height = side;
@@ -99,7 +97,7 @@ export function ImageCanvas({
 
         const loupeCtx = loupeCanvas.getContext('2d');
         if (loupeCtx) {
-          const loupeZoom = Math.max(LOUPE_ZOOM, vs.zoom);
+          const loupeZoom = Math.min(vs.zoom * 10, 25);
           const loupeVS: ViewerState = {
             ...vs,
             pan: { x: lp.imgX, y: lp.imgY },
@@ -170,8 +168,8 @@ export function ImageCanvas({
       const imgX = (cx - canvasSize.width / 2) / vs.zoom + vs.pan.x;
       const imgY = (cy - canvasSize.height / 2) / vs.zoom + vs.pan.y;
 
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const newZoom = Math.max(minZoom, Math.min(100, vs.zoom * zoomFactor));
+       const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+       const newZoom = Math.max(minZoom, Math.min(100, vs.zoom * zoomFactor));
 
       const newState: ViewerState = {
         ...vs,
