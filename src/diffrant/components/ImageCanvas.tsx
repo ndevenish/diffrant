@@ -181,16 +181,19 @@ export function ImageCanvas({
 
       let newZoom: number;
       if (crossingStop || atStop) {
-        // Reset if direction reversed
-        if (softStopAccum.current !== 0 && Math.sign(e.deltaY) !== Math.sign(softStopAccum.current)) {
-          softStopAccum.current = 0;
-        }
-        softStopAccum.current += e.deltaY;
-        if (Math.abs(softStopAccum.current) < SOFT_STOP_THRESHOLD) {
-          newZoom = SOFT_STOP;
-        } else {
+        const dirReversed = softStopAccum.current !== 0 && Math.sign(e.deltaY) !== Math.sign(softStopAccum.current);
+        if (dirReversed) {
+          // Instant escape in the opposite direction
           softStopAccum.current = 0;
           newZoom = Math.max(minZoom, Math.min(100, rawZoom));
+        } else {
+          softStopAccum.current += e.deltaY;
+          if (Math.abs(softStopAccum.current) < SOFT_STOP_THRESHOLD) {
+            newZoom = SOFT_STOP;
+          } else {
+            softStopAccum.current = 0;
+            newZoom = Math.max(minZoom, Math.min(100, rawZoom));
+          }
         }
       } else {
         softStopAccum.current = 0;
