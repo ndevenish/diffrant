@@ -25,6 +25,7 @@ export function ImageCanvas({
   const hasAutoFit = useRef(false);
   const loupe = useRef({ active: false, imgX: 0, imgY: 0, canvasX: 0, canvasY: 0 });
   const softStopAccum = useRef(0);
+  const softStopTimeout = useRef(0);
 
   // Live viewer state — updated from props AND directly from mouse handlers.
   // Canvas renders from this ref, avoiding a full React round-trip per frame.
@@ -180,23 +181,22 @@ export function ImageCanvas({
       const atStop = vs.zoom === SOFT_STOP;
 
       let newZoom: number;
-      if (crossingStop || atStop) {
-        const dirReversed = softStopAccum.current !== 0 && Math.sign(e.deltaY) !== Math.sign(softStopAccum.current);
-        if (dirReversed) {
-          // Instant escape in the opposite direction
-          softStopAccum.current = 0;
-          newZoom = Math.max(minZoom, Math.min(100, rawZoom));
+      // Only soft-stop when zooming in; zooming out always passes freely
+      if ((crossingStop || atStop) && e.deltaY < 0) {
+        softStopAccum.current += e.deltaY;
+        // Reset accumulator after a pause so a later zoom-in isn't blocked
+        clearTimeout(softStopTimeout.current);
+        softStopTimeout.current = window.setTimeout(() => { softStopAccum.current = 0; }, 600);
+        if (Math.abs(softStopAccum.current) < SOFT_STOP_THRESHOLD) {
+          newZoom = SOFT_STOP;
         } else {
-          softStopAccum.current += e.deltaY;
-          if (Math.abs(softStopAccum.current) < SOFT_STOP_THRESHOLD) {
-            newZoom = SOFT_STOP;
-          } else {
-            softStopAccum.current = 0;
-            newZoom = Math.max(minZoom, Math.min(100, rawZoom));
-          }
+          softStopAccum.current = 0;
+          clearTimeout(softStopTimeout.current);
+          newZoom = Math.max(minZoom, Math.min(100, rawZoom));
         }
       } else {
         softStopAccum.current = 0;
+        clearTimeout(softStopTimeout.current);
         newZoom = Math.max(minZoom, Math.min(100, rawZoom));
       }
 
