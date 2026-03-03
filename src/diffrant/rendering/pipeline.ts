@@ -239,20 +239,29 @@ export function renderRegion(
     }
   }
 
-  // Draw beam center marker
+  // Draw beam center marker — scaled like resolution rings/text
   const [bcX, bcY] = metadata.beam_center;
   const bcCanvasX = (bcX - pan.x) * zoom + halfCanvasW;
   const bcCanvasY = (bcY - pan.y) * zoom + halfCanvasH;
-  const armLen = Math.max(8, zoom * 0.5);
-  ctx.strokeStyle = '#4a90d9';
-  ctx.lineWidth = 2;
+  const bcUiScale = Math.max(1, Math.pow(2, Math.log(zoom) / Math.log(5)));
+  const armLen = 10 * bcUiScale;
+  const bcOutlineColor = `rgb(${colormap[0]}, ${colormap[1]}, ${colormap[2]})`;
   ctx.setLineDash([]);
-  ctx.beginPath();
-  ctx.moveTo(bcCanvasX - armLen, bcCanvasY);
-  ctx.lineTo(bcCanvasX + armLen, bcCanvasY);
-  ctx.moveTo(bcCanvasX, bcCanvasY - armLen);
-  ctx.lineTo(bcCanvasX, bcCanvasY + armLen);
-  ctx.stroke();
+  ctx.lineJoin = 'round';
+  const drawCrosshair = () => {
+    ctx.beginPath();
+    ctx.moveTo(bcCanvasX - armLen, bcCanvasY);
+    ctx.lineTo(bcCanvasX + armLen, bcCanvasY);
+    ctx.moveTo(bcCanvasX, bcCanvasY - armLen);
+    ctx.lineTo(bcCanvasX, bcCanvasY + armLen);
+    ctx.stroke();
+  };
+  ctx.strokeStyle = bcOutlineColor;
+  ctx.lineWidth = 2 * bcUiScale + 2;
+  drawCrosshair();
+  ctx.strokeStyle = '#4a90d9';
+  ctx.lineWidth = 2 * bcUiScale;
+  drawCrosshair();
 
   if (viewState.showResolutionRings) {
     drawResolutionRings(ctx, canvasWidth, canvasHeight, metadata, viewState, colormap);

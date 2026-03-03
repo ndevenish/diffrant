@@ -1,8 +1,8 @@
 {
     "panel_distance_mm": 300,
     "beam_center": [
-        2000,
-        2010
+        2058,
+        2249
     ],
     "pixel_size": 0.075,
     "panel_size_fast_slow": [
