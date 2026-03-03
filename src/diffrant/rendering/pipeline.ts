@@ -342,10 +342,13 @@ function drawResolutionRings(
   };
   const color = ringColor[viewState.colormap];
 
+  // Scale thickness/font double per 10x zoom, floored at 1× when zoomed out
+  const uiScale = Math.max(1, Math.pow(2, Math.log10(zoom)));
+
   ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5;
-  ctx.setLineDash([6, 4]);
-  ctx.font = '11px sans-serif';
+  ctx.lineWidth = 1.5 * uiScale;
+  ctx.setLineDash([6 * uiScale, 4 * uiScale]);
+  ctx.font = `${Math.round(11 * uiScale)}px sans-serif`;
   ctx.fillStyle = color;
   ctx.textAlign = labelTextAlign;
   ctx.textBaseline = labelTextBaseline;
@@ -360,7 +363,7 @@ function drawResolutionRings(
     ctx.arc(bcCanvasX, bcCanvasY, rCanvas, 0, 2 * Math.PI);
     ctx.stroke();
 
-    const labelOffset = 4;
+    const labelOffset = 4 * uiScale;
     ctx.fillText(
       `${d}Å`,
       bcCanvasX + labelDirX * (rCanvas + labelOffset),
