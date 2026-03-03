@@ -254,7 +254,7 @@ export function renderRegion(
   ctx.stroke();
 
   if (viewState.showResolutionRings) {
-    drawResolutionRings(ctx, canvasWidth, canvasHeight, metadata, viewState);
+    drawResolutionRings(ctx, canvasWidth, canvasHeight, metadata, viewState, colormap);
   }
 }
 
@@ -270,6 +270,7 @@ function drawResolutionRings(
   canvasHeight: number,
   metadata: ImageMetadata,
   viewState: ViewerState,
+  colormap: ColormapTable,
 ): void {
   const { beam_energy_kev, beam_center, panel_distance_mm, pixel_size, panel_size_fast_slow } = metadata;
   if (!beam_energy_kev) return;
@@ -341,17 +342,16 @@ function drawResolutionRings(
     rainbow:   'rgba(255, 255, 255, 0.9)', // white — neutral against saturated hues
   };
   const color = ringColor[viewState.colormap];
+  const outlineColor = `rgb(${colormap[0]}, ${colormap[1]}, ${colormap[2]})`;
 
-  // Scale thickness/font double per 10x zoom, floored at 1× when zoomed out
+  // Scale thickness/font: 2× per 5× zoom, floored at 1× when zoomed out
   const uiScale = Math.max(1, Math.pow(2, Math.log(zoom) / Math.log(5)));
+  const font = `${Math.round(11 * uiScale)}px sans-serif`;
 
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 1.5 * uiScale;
-  ctx.setLineDash([6 * uiScale, 4 * uiScale]);
-  ctx.font = `${Math.round(11 * uiScale)}px sans-serif`;
-  ctx.fillStyle = color;
+  ctx.font = font;
   ctx.textAlign = labelTextAlign;
   ctx.textBaseline = labelTextBaseline;
+  ctx.lineJoin = 'round';
 
   for (const d of uniqueRings) {
     const sinTheta = wavelength / (2 * d);
@@ -359,16 +359,23 @@ function drawResolutionRings(
     const twoTheta = 2 * Math.asin(sinTheta);
     const rCanvas = (panel_distance_mm * Math.tan(twoTheta) / pixel_size) * zoom;
 
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5 * uiScale;
+    ctx.setLineDash([6 * uiScale, 4 * uiScale]);
     ctx.beginPath();
     ctx.arc(bcCanvasX, bcCanvasY, rCanvas, 0, 2 * Math.PI);
     ctx.stroke();
 
     const labelOffset = 4 * uiScale;
-    ctx.fillText(
-      `${d}Å`,
-      bcCanvasX + labelDirX * (rCanvas + labelOffset),
-      bcCanvasY + labelDirY * (rCanvas + labelOffset),
-    );
+    const lx = bcCanvasX + labelDirX * (rCanvas + labelOffset);
+    const ly = bcCanvasY + labelDirY * (rCanvas + labelOffset);
+
+    ctx.setLineDash([]);
+    ctx.lineWidth = 3 * uiScale;
+    ctx.strokeStyle = outlineColor;
+    ctx.strokeText(`${d}Å`, lx, ly);
+    ctx.fillStyle = color;
+    ctx.fillText(`${d}Å`, lx, ly);
   }
 
   ctx.restore();
