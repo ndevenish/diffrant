@@ -24,6 +24,7 @@ export function ImageCanvas({
   const lastMouse = useRef({ x: 0, y: 0 });
   const hasAutoFit = useRef(false);
   const loupe = useRef({ active: false, imgX: 0, imgY: 0, canvasX: 0, canvasY: 0 });
+  const softStopAccum = useRef(0);
 
   // Live viewer state — updated from props AND directly from mouse handlers.
   // Canvas renders from this ref, avoiding a full React round-trip per frame.
@@ -168,8 +169,33 @@ export function ImageCanvas({
       const imgX = (cx - canvasSize.width / 2) / vs.zoom + vs.pan.x;
       const imgY = (cy - canvasSize.height / 2) / vs.zoom + vs.pan.y;
 
-       const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-       const newZoom = Math.max(minZoom, Math.min(100, vs.zoom * zoomFactor));
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+      const rawZoom = vs.zoom * zoomFactor;
+
+      // Soft stop at 25x: snap to exactly 25 and require extra scroll to pass through
+      const SOFT_STOP = 25;
+      const SOFT_STOP_THRESHOLD = 300;
+      const crossingStop = (vs.zoom < SOFT_STOP && rawZoom > SOFT_STOP)
+                        || (vs.zoom > SOFT_STOP && rawZoom < SOFT_STOP);
+      const atStop = vs.zoom === SOFT_STOP;
+
+      let newZoom: number;
+      if (crossingStop || atStop) {
+        // Reset if direction reversed
+        if (softStopAccum.current !== 0 && Math.sign(e.deltaY) !== Math.sign(softStopAccum.current)) {
+          softStopAccum.current = 0;
+        }
+        softStopAccum.current += e.deltaY;
+        if (Math.abs(softStopAccum.current) < SOFT_STOP_THRESHOLD) {
+          newZoom = SOFT_STOP;
+        } else {
+          softStopAccum.current = 0;
+          newZoom = Math.max(minZoom, Math.min(100, rawZoom));
+        }
+      } else {
+        softStopAccum.current = 0;
+        newZoom = Math.max(minZoom, Math.min(100, rawZoom));
+      }
 
       const newState: ViewerState = {
         ...vs,
