@@ -106,6 +106,20 @@
   min-height: 0;
 }
 
+.series-loading-overlay {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 6px 16px;
+  background: rgba(30, 30, 30, 0.85);
+  border-radius: 6px;
+  color: #ccc;
+  font-size: 13px;
+  pointer-events: none;
+}
+
 .series-loading,
 .series-error {
   padding: 20px 30px;

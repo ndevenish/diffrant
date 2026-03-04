@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import type { DiffrantProps } from './types';
+import type { DiffrantProps, ImageData } from './types';
 import { useImageLoader } from './hooks/useImageLoader';
 import { DiffrantViewer } from './DiffrantViewer';
 import './Diffrant.css';
@@ -12,6 +12,9 @@ export function Diffrant({
   autoExposureTrigger = 0,
 }: DiffrantProps) {
   const { imageData, loading, error } = useImageLoader(metadataUrl, imageUrl);
+  const lastImageData = useRef<ImageData | null>(null);
+  if (imageData) lastImageData.current = imageData;
+  const displayData = imageData ?? lastImageData.current;
   const processedTrigger = useRef(-1);
   // Ref so the effect reads the latest viewerState without re-running on every change.
   const viewerStateRef = useRef(viewerState);
@@ -61,14 +64,6 @@ export function Diffrant({
   }, [imageData, autoExposureTrigger]);
 
 
-  if (loading) {
-    return (
-      <div className="diffrant-container">
-        <div className="diffrant-loading">Loading image...</div>
-      </div>
-    );
-  }
-
   if (error) {
     return (
       <div className="diffrant-container">
@@ -77,17 +72,17 @@ export function Diffrant({
     );
   }
 
-  if (!imageData) {
+  if (!displayData) {
     return (
       <div className="diffrant-container">
-        <div className="diffrant-loading">No data</div>
+        <div className="diffrant-loading">{loading ? 'Loading image...' : 'No data'}</div>
       </div>
     );
   }
 
   return (
     <DiffrantViewer
-      imageData={imageData}
+      imageData={displayData}
       viewerState={viewerState}
       onViewerStateChange={onViewerStateChange}
     />

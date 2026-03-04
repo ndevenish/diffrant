@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
-import type { SeriesViewerProps } from './types';
+import type { SeriesViewerProps, ImageData } from './types';
 import { useSeriesLoader } from './hooks/useSeriesLoader';
 import { DiffrantViewer } from './DiffrantViewer';
 import './SeriesViewer.css';
@@ -14,6 +14,9 @@ export function SeriesViewer({
   autoExposureTrigger = 0,
 }: SeriesViewerProps) {
   const { imageData, loading, error } = useSeriesLoader(getFrameUrls, currentFrame, seriesInfo.frameCount);
+  const lastImageData = useRef<ImageData | null>(null);
+  if (imageData) lastImageData.current = imageData;
+  const displayData = imageData ?? lastImageData.current;
 
   const [frameInputValue, setFrameInputValue] = useState(String(currentFrame));
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,19 +141,19 @@ export function SeriesViewer({
       </div>
       <div className="series-viewer-content">
         {loading && (
-          <div className="series-loading">Loading frame {currentFrame}…</div>
+          <div className="series-loading-overlay">Loading frame {currentFrame}…</div>
         )}
         {error && (
           <div className="series-error">Error: {error}</div>
         )}
-        {!loading && !error && imageData && (
+        {!error && displayData && (
           <DiffrantViewer
-            imageData={imageData}
+            imageData={displayData}
             viewerState={viewerState}
             onViewerStateChange={onViewerStateChange}
           />
         )}
-        {!loading && !error && !imageData && (
+        {!loading && !error && !displayData && (
           <div className="series-loading">No data</div>
         )}
       </div>
