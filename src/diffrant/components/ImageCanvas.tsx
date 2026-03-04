@@ -27,6 +27,8 @@ export function ImageCanvas({
   const lastMouse = useRef({ x: 0, y: 0 });
   const hasAutoFit = useRef(false);
   const loupe = useRef({ active: false, imgX: 0, imgY: 0, canvasX: 0, canvasY: 0 });
+  const isZooming = useRef(false);
+  const zoomOrigin = useRef({ canvasX: 0, canvasY: 0, imgX: 0, imgY: 0 });
   const softStopAccum = useRef(0);
   const softStopTimeout = useRef(0);
   const lutCache = useRef<{ exposureMin: number; exposureMax: number; depth: number; lut: Uint8Array } | null>(null);
@@ -251,6 +253,18 @@ export function ImageCanvas({
     if (e.button === 0) {
       isDragging.current = true;
       lastMouse.current = { x: e.clientX, y: e.clientY };
+    } else if (e.button === 1) {
+      e.preventDefault();
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      const vs = liveState.current;
+      const imgX = (cx - canvasSize.width / 2) / vs.zoom + vs.pan.x;
+      const imgY = (cy - canvasSize.height / 2) / vs.zoom + vs.pan.y;
+      zoomOrigin.current = { canvasX: cx, canvasY: cy, imgX, imgY };
+      isZooming.current = true;
+      lastMouse.current = { x: e.clientX, y: e.clientY };
     } else if (e.button === 2) {
       e.preventDefault();
       const rect = canvasRef.current?.getBoundingClientRect();
@@ -292,30 +306,51 @@ export function ImageCanvas({
         }
       }
 
-      if (!isDragging.current) return;
-
       const dx = e.clientX - lastMouse.current.x;
       const dy = e.clientY - lastMouse.current.y;
       lastMouse.current = { x: e.clientX, y: e.clientY };
 
-      const vs = liveState.current;
+      if (isZooming.current) {
+        const vs = liveState.current;
+        const zoomFactor = Math.exp(dx * 0.01);
+        const rawZoom = vs.zoom * zoomFactor;
+        const newZoom = Math.max(minZoom, Math.min(100, rawZoom));
+        const newPan = {
+          x: zoomOrigin.current.imgX - (zoomOrigin.current.canvasX - canvasSize.width / 2) / newZoom,
+          y: zoomOrigin.current.imgY - (zoomOrigin.current.canvasY - canvasSize.height / 2) / newZoom,
+        };
+        const newState: ViewerState = {
+          ...vs,
+          zoom: newZoom,
+          pan: newPan,
+        };
+        liveState.current = newState;
+        scheduleRender();
+        emitState(newState);
+        return;
+      }
+
+      if (!isDragging.current) return;
+
       const newState: ViewerState = {
-        ...vs,
+        ...liveState.current,
         pan: {
-          x: vs.pan.x - dx / vs.zoom,
-          y: vs.pan.y - dy / vs.zoom,
+          x: liveState.current.pan.x - dx / liveState.current.zoom,
+          y: liveState.current.pan.y - dy / liveState.current.zoom,
         },
       };
       liveState.current = newState;
       scheduleRender();
       emitState(newState);
     },
-    [canvasSize, imageData, scheduleRender],
+    [canvasSize, imageData, minZoom, scheduleRender, emitState],
   );
 
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     if (e.button === 0) {
       isDragging.current = false;
+    } else if (e.button === 1) {
+      isZooming.current = false;
     } else if (e.button === 2) {
       loupe.current.active = false;
       scheduleRender();
@@ -340,6 +375,51 @@ export function ImageCanvas({
     scheduleRender();
     onCursorRef.current(null);
   }, [scheduleRender]);
+
+  // Prevent browser wheel menu on middle-click drag and handle global mouseup/move
+  useEffect(() => {
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (e.button === 1) {
+        isZooming.current = false;
+      }
+    };
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (isZooming.current) {
+        e.preventDefault();
+        const dx = e.clientX - lastMouse.current.x;
+        const vs = liveState.current;
+        const zoomFactor = Math.exp(dx * 0.01);
+        const rawZoom = vs.zoom * zoomFactor;
+        const newZoom = Math.max(minZoom, Math.min(100, rawZoom));
+        const newPan = {
+          x: zoomOrigin.current.imgX - (zoomOrigin.current.canvasX - canvasSize.width / 2) / newZoom,
+          y: zoomOrigin.current.imgY - (zoomOrigin.current.canvasY - canvasSize.height / 2) / newZoom,
+        };
+        const newState: ViewerState = {
+          ...vs,
+          zoom: newZoom,
+          pan: newPan,
+        };
+        liveState.current = newState;
+        scheduleRender();
+        emitState(newState);
+        lastMouse.current = { x: e.clientX, y: e.clientY };
+      }
+    };
+    const handleWheel = (e: WheelEvent) => {
+      if (isZooming.current) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('mousemove', handleGlobalMouseMove, { passive: false });
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('wheel', handleWheel);
+    };
+  }, [minZoom, scheduleRender, emitState]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
