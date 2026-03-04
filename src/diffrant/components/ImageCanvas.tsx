@@ -29,6 +29,7 @@ export function ImageCanvas({
   const loupe = useRef({ active: false, imgX: 0, imgY: 0, canvasX: 0, canvasY: 0 });
   const isZooming = useRef(false);
   const zoomOrigin = useRef({ canvasX: 0, canvasY: 0, imgX: 0, imgY: 0 });
+  const lastRightClick = useRef(0);
   const softStopAccum = useRef(0);
   const softStopTimeout = useRef(0);
   const lutCache = useRef<{ exposureMin: number; exposureMax: number; depth: number; lut: Uint8Array } | null>(null);
@@ -274,10 +275,26 @@ export function ImageCanvas({
       const vs = liveState.current;
       const imgX = (cx - canvasSize.width / 2) / vs.zoom + vs.pan.x;
       const imgY = (cy - canvasSize.height / 2) / vs.zoom + vs.pan.y;
-      loupe.current = { active: true, imgX, imgY, canvasX: cx, canvasY: cy };
-      scheduleRender();
+
+      const now = performance.now();
+      const isDoubleClick = now - lastRightClick.current < 300;
+      lastRightClick.current = now;
+
+      if (isDoubleClick) {
+        const newState: ViewerState = {
+          ...vs,
+          zoom: SOFT_STOP,
+          pan: { x: imgX, y: imgY },
+        };
+        liveState.current = newState;
+        scheduleRender();
+        emitState(newState);
+      } else {
+        loupe.current = { active: true, imgX, imgY, canvasX: cx, canvasY: cy };
+        scheduleRender();
+      }
     }
-  }, [canvasSize, scheduleRender]);
+  }, [canvasSize, scheduleRender, emitState]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
