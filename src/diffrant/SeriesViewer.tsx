@@ -21,7 +21,7 @@ export function SeriesViewer({
   const [frameInputValue, setFrameInputValue] = useState(String(currentFrame));
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const processedTrigger = useRef(-1);
+  const processedTrigger = useRef(0);
   const viewerStateRef = useRef(viewerState);
   viewerStateRef.current = viewerState;
   const onViewerStateChangeRef = useRef(onViewerStateChange);

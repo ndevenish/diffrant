@@ -15,7 +15,7 @@ export function Diffrant({
   const lastImageData = useRef<ImageData | null>(null);
   if (imageData) lastImageData.current = imageData;
   const displayData = imageData ?? lastImageData.current;
-  const processedTrigger = useRef(-1);
+  const processedTrigger = useRef(0);
   // Ref so the effect reads the latest viewerState without re-running on every change.
   const viewerStateRef = useRef(viewerState);
   viewerStateRef.current = viewerState;

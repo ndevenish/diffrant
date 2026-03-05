@@ -171,6 +171,31 @@ export function Histogram({
     [viewerState, onViewerStateChange],
   );
 
+  const handleAutoContrast = useCallback(() => {
+    const trustedMax = imageData.trusted_range_max;
+    const data = imageData.data;
+    const len = data.length;
+    const histSize = imageData.depth <= 16 ? (1 << imageData.depth) : 65536;
+    const hist = new Uint32Array(histSize);
+    let count = 0;
+    for (let i = 0; i < len; i++) {
+      const v = data[i];
+      if (v <= trustedMax) {
+        hist[Math.min(v, histSize - 1)] += 1;
+        count++;
+      }
+    }
+    if (count === 0) return;
+    const target = Math.floor(count * 0.9);
+    let cumulative = 0;
+    let p90 = 0;
+    for (let i = 0; i < histSize; i++) {
+      cumulative += hist[i];
+      if (cumulative >= target) { p90 = i; break; }
+    }
+    onViewerStateChange({ ...viewerState, exposureMax: Math.max(p90, 2) });
+  }, [imageData, viewerState, onViewerStateChange]);
+
   return (
     <div className="histogram-container">
       <div className="histogram-label">Exposure</div>
@@ -205,6 +230,13 @@ export function Histogram({
             min={0}
           />
         </label>
+        <button
+          className="histogram-auto-btn"
+          onClick={handleAutoContrast}
+          title="Auto-contrast: set max to 90th percentile"
+        >
+          Auto
+        </button>
       </div>
     </div>
   );
